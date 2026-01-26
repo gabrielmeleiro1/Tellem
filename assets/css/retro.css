@@ -1,0 +1,321 @@
+/* ============================================
+   AUDIOBOOK CREATOR - AMBER & OBSIDIAN THEME
+   Retro CRT Terminal Aesthetic
+   ============================================ */
+
+/* Import JetBrains Mono from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+/* ============================================
+   CSS VARIABLES
+   ============================================ */
+:root {
+    /* Core Palette */
+    --obsidian: #0A0A0A;
+    --amber: #FFB000;
+    --amber-dim: #CC8C00;
+    --signal-red: #FF4500;
+    --dim-gray: #555555;
+    --slate-stroke: #1A1A1A;
+    
+    /* Glow Effects */
+    --amber-glow: 0 0 10px rgba(255, 176, 0, 0.5), 0 0 20px rgba(255, 176, 0, 0.3);
+    --amber-glow-strong: 0 0 10px rgba(255, 176, 0, 0.8), 0 0 30px rgba(255, 176, 0, 0.5);
+    
+    /* Typography */
+    --font-mono: 'JetBrains Mono', 'Roboto Mono', 'Fira Code', monospace;
+    --font-size-base: 14px;
+    --line-height: 1.5;
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+html, body, [data-testid="stAppViewContainer"] {
+    background-color: var(--obsidian) !important;
+    color: var(--amber) !important;
+    font-family: var(--font-mono) !important;
+    font-size: var(--font-size-base) !important;
+    line-height: var(--line-height) !important;
+}
+
+/* Remove default Streamlit padding */
+.block-container {
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+}
+
+/* ============================================
+   SCANLINE OVERLAY
+   ============================================ */
+[data-testid="stAppViewContainer"]::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.03) 2px,
+        rgba(0, 0, 0, 0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+}
+
+/* ============================================
+   PHOSPHOR GLOW TEXT
+   ============================================ */
+h1, h2, h3, .glow-text {
+    text-shadow: var(--amber-glow) !important;
+    color: var(--amber) !important;
+}
+
+/* Strong glow for main title */
+h1 {
+    text-shadow: var(--amber-glow-strong) !important;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* ============================================
+   SIDEBAR STYLING
+   ============================================ */
+[data-testid="stSidebar"] {
+    background-color: var(--obsidian) !important;
+    border-right: 1px solid var(--slate-stroke) !important;
+}
+
+[data-testid="stSidebar"] > div:first-child {
+    background-color: var(--obsidian) !important;
+}
+
+/* ============================================
+   BRACKET BUTTONS
+   ============================================ */
+.stButton > button {
+    background-color: transparent !important;
+    color: var(--amber) !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-family: var(--font-mono) !important;
+    font-size: var(--font-size-base) !important;
+    padding: 0.5rem 1rem !important;
+    transition: all 0.1s ease !important;
+}
+
+.stButton > button::before {
+    content: '[ ';
+}
+
+.stButton > button::after {
+    content: ' ]';
+}
+
+.stButton > button:hover {
+    background-color: var(--amber) !important;
+    color: var(--obsidian) !important;
+    text-shadow: none !important;
+}
+
+.stButton > button:focus {
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* ============================================
+   FILE UPLOADER
+   ============================================ */
+[data-testid="stFileUploader"] {
+    background-color: var(--slate-stroke) !important;
+    border: 1px dashed var(--amber) !important;
+    border-radius: 0 !important;
+}
+
+[data-testid="stFileUploader"] label {
+    color: var(--amber) !important;
+}
+
+/* ============================================
+   PROGRESS BAR
+   ============================================ */
+.stProgress > div > div {
+    background-color: var(--slate-stroke) !important;
+    border-radius: 0 !important;
+}
+
+.stProgress > div > div > div {
+    background-color: var(--amber) !important;
+    border-radius: 0 !important;
+}
+
+/* ============================================
+   SELECT BOX / DROPDOWN
+   ============================================ */
+[data-testid="stSelectbox"] {
+    color: var(--amber) !important;
+}
+
+[data-testid="stSelectbox"] > div > div {
+    background-color: var(--slate-stroke) !important;
+    border: 1px solid var(--amber) !important;
+    border-radius: 0 !important;
+    color: var(--amber) !important;
+}
+
+/* ============================================
+   SLIDER
+   ============================================ */
+.stSlider > div > div > div {
+    background-color: var(--amber) !important;
+}
+
+.stSlider > div > div > div > div {
+    background-color: var(--amber) !important;
+    border-radius: 0 !important;
+}
+
+/* ============================================
+   TEXT INPUT
+   ============================================ */
+.stTextInput > div > div > input {
+    background-color: var(--slate-stroke) !important;
+    border: 1px solid var(--amber) !important;
+    border-radius: 0 !important;
+    color: var(--amber) !important;
+    font-family: var(--font-mono) !important;
+}
+
+.stTextInput > div > div > input:focus {
+    border-color: var(--amber) !important;
+    box-shadow: var(--amber-glow) !important;
+}
+
+/* ============================================
+   TEXT AREA (LOG WINDOW)
+   ============================================ */
+.stTextArea > div > div > textarea {
+    background-color: var(--obsidian) !important;
+    border: 1px solid var(--slate-stroke) !important;
+    border-radius: 0 !important;
+    color: var(--dim-gray) !important;
+    font-family: var(--font-mono) !important;
+    font-size: 12px !important;
+}
+
+/* ============================================
+   DIVIDERS
+   ============================================ */
+hr {
+    border: none !important;
+    border-top: 1px solid var(--slate-stroke) !important;
+    margin: 1rem 0 !important;
+}
+
+/* ============================================
+   STATUS INDICATORS
+   ============================================ */
+.status-ready {
+    color: var(--amber) !important;
+}
+
+.status-processing {
+    color: var(--amber) !important;
+    animation: blink 1s infinite;
+}
+
+.status-error {
+    color: var(--signal-red) !important;
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0.5; }
+}
+
+/* ============================================
+   METRICS / STATS
+   ============================================ */
+[data-testid="stMetricValue"] {
+    color: var(--amber) !important;
+    font-family: var(--font-mono) !important;
+}
+
+[data-testid="stMetricLabel"] {
+    color: var(--dim-gray) !important;
+    text-transform: uppercase !important;
+    font-size: 10px !important;
+    letter-spacing: 1px !important;
+}
+
+/* ============================================
+   EXPANDER
+   ============================================ */
+.streamlit-expanderHeader {
+    background-color: var(--slate-stroke) !important;
+    border: 1px solid var(--slate-stroke) !important;
+    border-radius: 0 !important;
+    color: var(--amber) !important;
+}
+
+/* ============================================
+   HIDE STREAMLIT BRANDING
+   ============================================ */
+#MainMenu, footer, header {
+    visibility: hidden !important;
+}
+
+/* ============================================
+   CUSTOM WAVEFORM CONTAINER
+   ============================================ */
+.waveform-container {
+    background-color: var(--obsidian);
+    border: 1px solid var(--slate-stroke);
+    padding: 1rem;
+    margin: 1rem 0;
+    font-family: var(--font-mono);
+    color: var(--amber);
+    text-shadow: var(--amber-glow);
+}
+
+/* ============================================
+   HEADER STRIP
+   ============================================ */
+.header-strip {
+    background-color: var(--obsidian);
+    border-bottom: 1px solid var(--slate-stroke);
+    padding: 0.5rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* ============================================
+   LOG WINDOW
+   ============================================ */
+.log-window {
+    background-color: var(--obsidian);
+    border: 1px solid var(--slate-stroke);
+    padding: 0.5rem;
+    font-size: 12px;
+    color: var(--dim-gray);
+    max-height: 150px;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+}
+
+.log-entry {
+    margin: 0;
+    padding: 2px 0;
+}
+
+.log-entry::before {
+    content: '> ';
+    color: var(--amber);
+}
