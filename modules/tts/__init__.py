@@ -4,5 +4,6 @@ TTS Module
 Text-to-Speech engine using Kokoro-82M via MLX.
 """
 
-# Exports will be added in Phase 2
-__all__ = []
+from .engine import TTSEngine, TTSConfig, list_voices, KOKORO_VOICES
+
+__all__ = ["TTSEngine", "TTSConfig", "list_voices", "KOKORO_VOICES"]
