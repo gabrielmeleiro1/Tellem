@@ -1,6 +1,9 @@
 # Audiobook Creator - Git Ignore
 # ==============================
 
+# Local scripts
+commit.sh
+
 # Python
 __pycache__/
 *.py[cod]
