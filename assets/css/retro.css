@@ -376,27 +376,6 @@ audio::-webkit-media-controls-time-remaining-display {
 audio::-webkit-media-controls-timeline {
     background-color: var(--slate-stroke) !important;
     border-radius: 0 !important;
-    height: 4px !important;
-}
-
-/* Audio slider thumb */
-audio::-webkit-media-controls-timeline::-webkit-slider-thumb {
-    background-color: var(--amber) !important;
-    border: none !important;
-    border-radius: 0 !important;
-    width: 10px !important;
-    height: 10px !important;
-}
-
-/* Volume slider */
-audio::-webkit-media-controls-volume-slider {
-    background-color: var(--slate-stroke) !important;
-    border-radius: 0 !important;
-}
-
-audio::-webkit-media-controls-volume-slider::-webkit-slider-thumb {
-    background-color: var(--amber) !important;
-    border-radius: 0 !important;
 }
 
 /* ============================================
