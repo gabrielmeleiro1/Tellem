@@ -189,9 +189,13 @@ with main_col1:
     st.markdown("### [ waveform ]")
     waveform_placeholder = st.empty()
     with waveform_placeholder:
-        # ASCII waveform visualization
+        # ASCII waveform visualization with amber color
         waveform = "▁▃▅▇█▇▅▃▁▃▅▇█▇▅▃▁▃▅▇█▇▅▃▁▃▅▇█▇▅▃▁▃▅▇█▇▅▃▁"
-        st.markdown(f"`{waveform}`")
+        st.markdown(
+            f"<div style='font-family: monospace; color: #FFB000; "
+            f"text-shadow: 0 0 10px rgba(255, 176, 0, 0.5); font-size: 18px;'>{waveform}</div>",
+            unsafe_allow_html=True
+        )
     
     st.markdown("---")
     
