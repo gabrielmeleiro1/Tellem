@@ -214,4 +214,89 @@ These install: mlx, mlx-lm, kokoro support, spacy, soundfile, and related packag
 
 ---
 
+## 2026-01-28 - Phase 3: Audio Processing Complete
+
+### Tasks Completed
+
+From `tasks/03_AUDIO_PROCESSING.md`:
+
+**3.1 Audio Processor (PyDub)**
+- [x] Create `modules/audio/processor.py`
+- [x] Implement `AudioProcessor` class with concatenate, normalize, silence
+- [x] Test with multiple WAV file concatenation
+
+**3.2 MP3 Encoder (FFmpeg)**
+- [x] Create `modules/audio/encoder.py`
+- [x] Implement `AudioEncoder` class with wav_to_mp3, get_duration
+- [x] Verify VideoToolbox hardware acceleration available
+
+**3.3 M4B Packager**
+- [x] Create `modules/audio/packager.py`
+- [x] Implement `M4BPackager` with chapter markers
+- [x] Test chapter navigation (verified: 3 chapters with correct timestamps)
+
+**3.4 Metadata Handling**
+- [x] Integrated with existing EPUB/PDF parsers
+- [x] `AudiobookMetadata` dataclass for user editing
+- [x] Metadata embedded via FFmpeg metadata file
+
+---
+
+### Architecture Changes
+
+#### New Files Created
+
+```
+modules/audio/
+├── __init__.py     # Updated: exports all audio classes
+├── processor.py    # NEW: AudioProcessor (PyDub)
+├── encoder.py      # NEW: AudioEncoder (FFmpeg)
+└── packager.py     # NEW: M4BPackager, AudiobookMetadata, ChapterMarker
+```
+
+#### Dependencies Added
+
+```bash
+pip install pydub  # Audio processing
+# ffmpeg required (brew install ffmpeg)
+```
+
+#### Key Design Decisions
+
+1. **PyDub for processing**: High-level API for WAV manipulation
+2. **FFmpeg for encoding**: Industry standard, hardware accelerated on Mac
+3. **Pure FFmpeg for M4B**: No m4b-tool dependency, uses ffmetadata format
+4. **Dataclasses for metadata**: Clean API for user editing before export
+
+---
+
+### Current State
+
+**What Works**:
+- WAV concatenation and volume normalization (-16 dBFS target)
+- MP3 encoding at 128kbps with duration utilities
+- M4B creation with chapter markers and metadata
+- Chapter navigation verified working
+
+**What's Next (Phase 3.5 Cover Art - Deferred)**:
+- Extract cover from EPUB
+- Allow custom cover upload
+- Embed cover in M4B
+
+---
+
+### Commits
+
+| Hash | Message |
+|------|---------|
+| 1947c20 | add audio processor with pydub |
+| b425736 | fix type annotations for pydub |
+| d2e94f7 | export audio processor |
+| b50df8d | add ffmpeg audio encoder |
+| a931972 | add m4b audiobook packager |
+| beb695e | export encoder and packager |
+
+---
+
 *Next entry will be added when continuing development.*
+
