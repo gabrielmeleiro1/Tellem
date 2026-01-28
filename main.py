@@ -54,6 +54,10 @@ if "log_messages" not in st.session_state:
     st.session_state.log_messages = []
 if "progress" not in st.session_state:
     st.session_state.progress = 0.0
+if "selected_voice" not in st.session_state:
+    st.session_state.selected_voice = "am_adam"
+if "selected_speed" not in st.session_state:
+    st.session_state.selected_speed = 1.0
 
 def add_log(message: str):
     """Add a message to the log window."""
@@ -95,13 +99,33 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Voice selection
+    # Voice selection with descriptions
     st.markdown("### [ voice engine ]")
+    
+    # Voice options with descriptions
+    voice_options = {
+        "am_adam": "Adam (American Male) - deep, authoritative",
+        "af_bella": "Bella (American Female) - warm, conversational",
+        "am_michael": "Michael (American Male) - friendly, casual",
+        "af_sarah": "Sarah (American Female) - professional, clear",
+        "bf_emma": "Emma (British Female) - refined, articulate",
+        "bm_george": "George (British Male) - classic, distinguished",
+    }
+    
     voice = st.selectbox(
         "voice",
-        options=["am_adam", "af_bella", "bf_emma", "bm_george"],
-        label_visibility="collapsed"
+        options=list(voice_options.keys()),
+        format_func=lambda x: voice_options[x],
+        index=list(voice_options.keys()).index(st.session_state.selected_voice),
+        label_visibility="collapsed",
+        key="voice_select"
     )
+    st.session_state.selected_voice = voice
+    
+    # Preview button
+    if st.button("🔊 preview", key="voice_preview", use_container_width=True):
+        add_log(f"preview: {voice}")
+        st.toast(f"Voice preview: {voice_options[voice].split(' - ')[0]}")
     
     # Speed slider
     st.markdown("### [ speed ]")
@@ -109,16 +133,18 @@ with st.sidebar:
         "speed",
         min_value=0.5,
         max_value=2.0,
-        value=1.0,
+        value=st.session_state.selected_speed,
         step=0.1,
-        label_visibility="collapsed"
+        label_visibility="collapsed",
+        key="speed_slider"
     )
+    st.session_state.selected_speed = speed
     st.markdown(f"`{speed}x`")
     
     st.markdown("---")
     
     # Stats
-    st.markdown("### [ stats ]")
+    st.markdown("### [ current settings ]")
     st.markdown(f"voice: `{voice}`")
     st.markdown(f"speed: `{speed}x`")
 
