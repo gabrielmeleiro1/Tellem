@@ -146,6 +146,95 @@ def set_current_stage(stage: ProcessingStage):
     progress.stage = stage
 
 
+def request_cancellation():
+    """Request cancellation of the current conversion."""
+    progress = get_progress()
+    progress.is_cancelled = True
+    progress.stage = ProcessingStage.CANCELLED
+
+
+def is_cancelled() -> bool:
+    """Check if cancellation has been requested."""
+    progress = get_progress()
+    return progress.is_cancelled
+
+
+def clear_cancellation():
+    """Clear the cancellation flag (for retrying)."""
+    progress = get_progress()
+    progress.is_cancelled = False
+    if progress.stage == ProcessingStage.CANCELLED:
+        progress.stage = ProcessingStage.IDLE
+
+
+def save_progress_to_session():
+    """
+    Save progress state to session for persistence across page refreshes.
+    Uses a serializable dict format stored in st.session_state.
+    """
+    progress = get_progress()
+    
+    # Serialize chapters
+    chapters_data = []
+    for ch in progress.chapters:
+        chapters_data.append({
+            "name": ch.name,
+            "index": ch.index,
+            "total_chunks": ch.total_chunks,
+            "completed_chunks": ch.completed_chunks,
+            "stage": ch.stage.value,
+            "error": ch.error,
+        })
+    
+    st.session_state["_progress_backup"] = {
+        "chapters": chapters_data,
+        "current_chapter_idx": progress.current_chapter_idx,
+        "stage": progress.stage.value,
+        "start_time": progress.start_time,
+        "eta_seconds": progress.eta_seconds,
+        "is_cancelled": progress.is_cancelled,
+    }
+
+
+def restore_progress_from_session() -> bool:
+    """
+    Restore progress state from session backup.
+    Returns True if restoration was successful, False if no backup exists.
+    """
+    if "_progress_backup" not in st.session_state:
+        return False
+    
+    backup = st.session_state["_progress_backup"]
+    progress = get_progress()
+    
+    # Restore chapters
+    progress.chapters = []
+    for ch_data in backup.get("chapters", []):
+        ch = ChapterProgress(
+            name=ch_data["name"],
+            index=ch_data["index"],
+            total_chunks=ch_data["total_chunks"],
+            completed_chunks=ch_data["completed_chunks"],
+            stage=ProcessingStage(ch_data["stage"]),
+            error=ch_data.get("error"),
+        )
+        progress.chapters.append(ch)
+    
+    progress.current_chapter_idx = backup.get("current_chapter_idx", 0)
+    progress.stage = ProcessingStage(backup.get("stage", "idle"))
+    progress.start_time = backup.get("start_time")
+    progress.eta_seconds = backup.get("eta_seconds")
+    progress.is_cancelled = backup.get("is_cancelled", False)
+    
+    return True
+
+
+def clear_progress_backup():
+    """Clear the saved progress backup."""
+    if "_progress_backup" in st.session_state:
+        del st.session_state["_progress_backup"]
+
+
 def render_chapter_progress():
     """Render per-chapter progress bars in the UI."""
     progress = get_progress()
