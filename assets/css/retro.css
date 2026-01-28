@@ -191,6 +191,13 @@ a.anchor-link,
     border-radius: 0 !important;
 }
 
+/* Slider min/max value labels */
+[data-testid="stSlider"] [data-testid="stTickBarMin"],
+[data-testid="stSlider"] [data-testid="stTickBarMax"] {
+    background-color: transparent !important;
+    color: var(--amber) !important;
+}
+
 /* ============================================
    TEXT INPUT
    ============================================ */
