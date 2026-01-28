@@ -10,6 +10,16 @@ UI: Streamlit with "Amber & Obsidian" retro terminal theme
 import streamlit as st
 from pathlib import Path
 
+from modules.ui.progress import (
+    init_progress_state,
+    get_progress,
+    set_chapters,
+    set_current_stage,
+    render_chapter_progress,
+    render_stage_indicator,
+    ProcessingStage,
+)
+
 # ============================================
 # PAGE CONFIGURATION
 # ============================================
@@ -270,10 +280,9 @@ with main_col1:
 with main_col2:
     # Progress Section
     st.markdown("### [ progress ]")
+    init_progress_state()
     if st.session_state.current_file:
-        st.progress(st.session_state.progress)
-        st.markdown(f"chapter: `1/12`")
-        st.markdown(f"progress: `{int(st.session_state.progress * 100)}%`")
+        render_chapter_progress()
     else:
         st.markdown("_awaiting file_")
     
@@ -281,8 +290,7 @@ with main_col2:
     
     # Processing Info
     st.markdown("### [ processing ]")
-    st.markdown(f"stage: `{st.session_state.processing_stage}`")
-    st.markdown(f"eta: `--:--`")
+    render_stage_indicator()
     
     st.markdown("---")
     
