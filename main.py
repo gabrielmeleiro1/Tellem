@@ -20,6 +20,12 @@ from modules.ui.progress import (
     ProcessingStage,
 )
 from modules.ui.waveform import render_waveform_component
+from modules.ui.conversion import (
+    run_conversion,
+    get_text_preview,
+    init_conversion_state,
+    add_log as conversion_add_log,
+)
 
 # ============================================
 # PAGE CONFIGURATION
@@ -219,15 +225,49 @@ with main_col1:
         add_log(f"file loaded: {uploaded_file.name}")
         st.markdown(f"**loaded:** `{uploaded_file.name}`")
         
+        # Initialize conversion state
+        init_conversion_state()
+        
         # START CONVERSION BUTTON
         st.markdown("")
         if st.button("▶ START CONVERSION", use_container_width=True, type="primary"):
             st.session_state.status = "processing"
-            st.session_state.processing_stage = "loading_model"
+            st.session_state.processing_stage = "ingesting"
             st.session_state.tts_model_loaded = True
             add_log("starting conversion...")
-            add_log(f"loading TTS model: {st.session_state.tts_model_name}")
+            add_log(f"voice: {st.session_state.selected_voice}, speed: {st.session_state.selected_speed}x")
+            
+            # Run the conversion pipeline
+            with st.spinner("Converting... this may take a while"):
+                result = run_conversion(
+                    uploaded_file=uploaded_file,
+                    filename=uploaded_file.name,
+                    voice=st.session_state.selected_voice,
+                    speed=st.session_state.selected_speed,
+                )
+                st.session_state.conversion_result = result
+            
+            if result.success:
+                st.session_state.status = "complete"
+                add_log(f"conversion complete: {result.output_path}")
+            else:
+                st.session_state.status = "error"
+                add_log(f"conversion failed: {result.error}")
+            
             st.rerun()
+        
+        # Show download button if conversion complete
+        if st.session_state.get("conversion_result") and st.session_state.conversion_result.success:
+            result = st.session_state.conversion_result
+            if result.output_path and result.output_path.exists():
+                with open(result.output_path, "rb") as f:
+                    st.download_button(
+                        label="↓ DOWNLOAD AUDIOBOOK",
+                        data=f.read(),
+                        file_name=result.output_path.name,
+                        mime="audio/mp4",
+                        use_container_width=True,
+                    )
     
     st.markdown("---")
     
@@ -236,10 +276,13 @@ with main_col1:
     preview_container = st.container()
     with preview_container:
         if uploaded_file:
-            st.markdown("```")
-            st.markdown("the first lines of your book will appear here...")
-            st.markdown("chapter detection and parsing in progress...")
-            st.markdown("```")
+            try:
+                preview_text = get_text_preview(uploaded_file)
+                st.markdown("```")
+                st.markdown(preview_text[:300] + "..." if len(preview_text) > 300 else preview_text)
+                st.markdown("```")
+            except Exception as e:
+                st.markdown(f"_preview error: {e}_")
         else:
             st.markdown("_no file loaded_")
     
