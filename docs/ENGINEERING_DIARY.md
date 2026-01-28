@@ -300,3 +300,129 @@ pip install pydub  # Audio processing
 
 *Next entry will be added when continuing development.*
 
+---
+
+## 2026-01-28 - Phase 4: UI Polish (Session 1)
+
+### Tasks Completed
+
+From `tasks/04_UI_POLISH.md`:
+
+**4.2 Real-time Log Window**
+- [x] Create collapsible log component (uses `st.expander`)
+- [x] Format: `> action_description...`
+- [x] Shows last 10 log messages
+
+**4.4 Visual Effects**  
+- [x] Implement scanline overlay (CSS `::after` pseudo-element)
+- [x] Add phosphor glow to amber text (`text-shadow`)
+- [x] Style all buttons as `[ ACTION ]` (bracket format)
+- [x] Implement hover state (color invert)
+- [x] Remove all rounded corners (`border-radius: 0`)
+- [x] Hide header anchor/link icons
+- [x] Style audio player to match theme
+- [x] Fix slider min/max labels visibility
+
+**Voice Preview Feature**
+- [x] Implement real TTS preview with James Joyce text
+- [x] Loads Kokoro model, synthesizes ~10s audio, plays inline
+- [x] Properly unloads model after preview
+
+---
+
+### Challenges & Solutions
+
+#### Challenge 1: Header Anchor Links
+
+**Problem**: Streamlit adds clickable link icons next to headers on hover.
+
+**Solution**: CSS to hide all variants:
+```css
+.stMarkdown a[href^="#"],
+[data-testid="stHeaderActionElements"],
+a.anchor-link {
+    display: none !important;
+}
+```
+
+---
+
+#### Challenge 2: Native Audio Player Styling
+
+**Problem**: Browser's default audio player (gray pill) didn't match theme.
+
+**Solution**: CSS pseudo-selectors for WebKit controls:
+```css
+audio::-webkit-media-controls-panel {
+    background-color: #0A0A0A !important;
+    border-radius: 0 !important;
+}
+audio::-webkit-media-controls-current-time-display {
+    color: #FFB000 !important;
+}
+```
+
+---
+
+#### Challenge 3: Slider Labels Hidden
+
+**Problem**: Min/max values under speed slider showed amber boxes with invisible text.
+
+**Solution**: Make label backgrounds transparent:
+```css
+[data-testid="stTickBarMin"],
+[data-testid="stTickBarMax"] {
+    background-color: transparent !important;
+}
+```
+
+---
+
+### Architecture Changes
+
+#### Files Modified
+
+```
+main.py              # Voice preview with real TTS, collapsible log
+assets/css/retro.css # Audio player, slider labels, link hiding
+```
+
+#### Key Design Decisions
+
+1. **Inline TTS preview**: Load model → synthesize → play → unload
+2. **Base64 audio embedding**: Avoids file serving complexity
+3. **Log as expander**: Reduces clutter, expandable when needed
+
+---
+
+### Current State
+
+**What Works**:
+- Full "Amber & Obsidian" retro terminal theme
+- Real-time log window (collapsible)
+- Voice preview plays actual TTS audio
+- File upload with START CONVERSION button
+- Model status display in processing section
+
+**What's Next (Pipeline Integration)**:
+- [ ] Wire START button to actual conversion pipeline
+- [ ] Connect: Ingest → Chunker → TTS → Audio Processor → M4B Packager
+- [ ] Real-time progress updates during conversion
+- [ ] Chapter-by-chapter processing with progress percentage
+- [ ] ETA calculation based on audio generation speed
+- [ ] Export download button for completed audiobook
+
+---
+
+### Commits
+
+| Hash | Message |
+|------|---------|
+| 3000bd0 | fix UI: styled audio player, collapsible log, hide links, TTS preview |
+| 3fbd13c | Revert "style audio player slider with amber theme" |
+| d7145d6 | fix slider min/max labels visibility |
+
+---
+
+*Next: Integrate full conversion pipeline with UI*
+
