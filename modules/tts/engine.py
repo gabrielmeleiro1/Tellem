@@ -23,8 +23,8 @@ except ImportError:
 @dataclass
 class TTSConfig:
     """Configuration for TTS engine."""
-    model_name: str = "lucasnewman/kokoro-mlx"
-    quantization: Literal["4bit", "8bit", "full"] = "4bit"
+    model_name: str = "mlx-community/Kokoro-82M"
+    quantization: Literal["4bit", "6bit", "8bit", "bf16"] = "bf16"
     sample_rate: int = 24000
     default_voice: str = "am_adam"
     max_chunk_tokens: int = 500
@@ -60,11 +60,15 @@ class TTSEngine:
     def _get_model_path(self) -> str:
         """Get the model path based on quantization setting."""
         base = self.config.model_name
-        if self.config.quantization == "4bit":
-            return f"{base}-4bit"
+        if self.config.quantization == "bf16":
+            return f"{base}-bf16"
+        elif self.config.quantization == "6bit":
+            return f"{base}-6bit"
         elif self.config.quantization == "8bit":
             return f"{base}-8bit"
-        return base
+        elif self.config.quantization == "4bit":
+            return f"{base}-4bit"
+        return f"{base}-bf16"
     
     @property
     def is_loaded(self) -> bool:
@@ -112,6 +116,10 @@ class TTSEngine:
         Returns:
             Audio as numpy array (float32, mono, 24kHz)
         """
+        import tempfile
+        import soundfile as sf
+        import os
+        
         if not text.strip():
             return np.array([], dtype=np.float32)
         
@@ -121,19 +129,29 @@ class TTSEngine:
         speed = max(0.5, min(2.0, speed))
         
         try:
-            # Generate audio using mlx-audio
-            audio = generate_audio(
-                text=text,
-                model=self._model_path,
-                voice=voice,
-                speed=speed
-            )
-            
-            # Convert MLX array to numpy if needed
-            if hasattr(audio, 'tolist'):
-                audio = np.array(audio, dtype=np.float32)
-            
-            return audio
+            # Generate audio using mlx-audio to temp directory
+            with tempfile.TemporaryDirectory() as temp_dir:
+                generate_audio(
+                    text=text,
+                    model=self._model_path,
+                    voice=voice,
+                    speed=speed,
+                    output_path=temp_dir,
+                    file_prefix="tts_output",
+                    audio_format="wav",
+                    verbose=False
+                )
+                
+                # Find the generated file
+                wav_files = [f for f in os.listdir(temp_dir) if f.endswith('.wav')]
+                if not wav_files:
+                    raise RuntimeError("No audio file generated")
+                
+                # Read the audio file
+                audio_path = os.path.join(temp_dir, wav_files[0])
+                audio, sample_rate = sf.read(audio_path, dtype='float32')
+                
+                return audio
             
         except Exception as e:
             print(f"TTS synthesis error: {e}")
@@ -192,7 +210,7 @@ class TTSEngine:
         # Clear MLX cache if available
         if MLX_AVAILABLE:
             try:
-                mx.metal.clear_cache()
+                mx.clear_cache()
             except Exception:
                 pass
         
