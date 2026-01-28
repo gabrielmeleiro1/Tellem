@@ -5,9 +5,14 @@ PyDub-based audio processing for chunk merging,
 volume normalization, and silence insertion.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Optional, Sequence, TYPE_CHECKING
 import numpy as np
+
+if TYPE_CHECKING:
+    from pydub import AudioSegment as AudioSegmentType
 
 try:
     from pydub import AudioSegment
