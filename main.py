@@ -128,10 +128,43 @@ with st.sidebar:
     )
     st.session_state.selected_voice = voice
     
-    # Preview button
-    if st.button("🔊 preview", key="voice_preview", use_container_width=True):
-        add_log(f"preview: {voice}")
-        st.toast(f"Voice preview: {voice_options[voice].split(' - ')[0]}")
+    # Preview button - plays actual TTS sample
+    if st.button("preview", key="voice_preview", use_container_width=True):
+        add_log(f"generating preview: {voice}")
+        preview_text = (
+            "A few light taps upon the pane made him turn to the window. "
+            "It had begun to snow again. He watched sleepily the flakes, "
+            "silver and dark, falling obliquely against the lamplight."
+        )
+        try:
+            from modules.tts.engine import TTSEngine
+            import tempfile
+            import base64
+            
+            with st.spinner("Generating preview..."):
+                engine = TTSEngine()
+                engine.load_model()
+                audio = engine.synthesize(preview_text, voice=voice, speed=st.session_state.selected_speed)
+                
+                # Save to temp file and create audio player
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                    import soundfile as sf
+                    sf.write(f.name, audio, 24000)
+                    
+                    # Read and encode for HTML audio
+                    with open(f.name, "rb") as audio_file:
+                        audio_bytes = audio_file.read()
+                        audio_b64 = base64.b64encode(audio_bytes).decode()
+                        st.markdown(
+                            f'<audio autoplay controls src="data:audio/wav;base64,{audio_b64}"></audio>',
+                            unsafe_allow_html=True
+                        )
+                
+                engine.unload_model()
+                add_log(f"preview complete: {voice}")
+        except Exception as e:
+            add_log(f"preview error: {str(e)}")
+            st.error(f"Preview failed: {e}")
     
     # Speed slider
     st.markdown("### [ speed ]")
@@ -269,12 +302,10 @@ with main_col2:
         st.markdown("status: `standby`")
 
 # ============================================
-# LOG WINDOW (Bottom)
+# LOG WINDOW (Bottom) - Collapsible
 # ============================================
 st.markdown("---")
-st.markdown("### [ log ]")
-log_container = st.container()
-with log_container:
+with st.expander("[ log ]", expanded=False):
     if st.session_state.log_messages:
         for msg in st.session_state.log_messages[-10:]:
             st.markdown(f"`> {msg}`")

@@ -17,11 +17,11 @@
     --signal-red: #FF4500;
     --dim-gray: #555555;
     --slate-stroke: #1A1A1A;
-    
+
     /* Glow Effects */
     --amber-glow: 0 0 10px rgba(255, 176, 0, 0.5), 0 0 20px rgba(255, 176, 0, 0.3);
     --amber-glow-strong: 0 0 10px rgba(255, 176, 0, 0.8), 0 0 30px rgba(255, 176, 0, 0.5);
-    
+
     /* Typography */
     --font-mono: 'JetBrains Mono', 'Roboto Mono', 'Fira Code', monospace;
     --font-size-base: 14px;
@@ -31,7 +31,9 @@
 /* ============================================
    BASE STYLES
    ============================================ */
-html, body, [data-testid="stAppViewContainer"] {
+html,
+body,
+[data-testid="stAppViewContainer"] {
     background-color: var(--obsidian) !important;
     color: var(--amber) !important;
     font-family: var(--font-mono) !important;
@@ -55,13 +57,11 @@ html, body, [data-testid="stAppViewContainer"] {
     left: 0;
     width: 100%;
     height: 100%;
-    background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0, 0, 0, 0.03) 2px,
-        rgba(0, 0, 0, 0.03) 4px
-    );
+    background: repeating-linear-gradient(0deg,
+            transparent,
+            transparent 2px,
+            rgba(0, 0, 0, 0.03) 2px,
+            rgba(0, 0, 0, 0.03) 4px);
     pointer-events: none;
     z-index: 9999;
 }
@@ -69,7 +69,10 @@ html, body, [data-testid="stAppViewContainer"] {
 /* ============================================
    PHOSPHOR GLOW TEXT
    ============================================ */
-h1, h2, h3, .glow-text {
+h1,
+h2,
+h3,
+.glow-text {
     text-shadow: var(--amber-glow) !important;
     color: var(--amber) !important;
 }
@@ -81,6 +84,16 @@ h1 {
     letter-spacing: 2px;
 }
 
+/* Hide anchor links on headers */
+.stMarkdown a[href^="#"],
+[data-testid="stHeaderActionElements"],
+.css-zt5igj,
+a.anchor-link,
+.header-anchor {
+    display: none !important;
+    visibility: hidden !important;
+}
+
 /* ============================================
    SIDEBAR STYLING
    ============================================ */
@@ -89,14 +102,14 @@ h1 {
     border-right: 1px solid var(--slate-stroke) !important;
 }
 
-[data-testid="stSidebar"] > div:first-child {
+[data-testid="stSidebar"]>div:first-child {
     background-color: var(--obsidian) !important;
 }
 
 /* ============================================
    BRACKET BUTTONS
    ============================================ */
-.stButton > button {
+.stButton>button {
     background-color: transparent !important;
     color: var(--amber) !important;
     border: none !important;
@@ -107,21 +120,21 @@ h1 {
     transition: all 0.1s ease !important;
 }
 
-.stButton > button::before {
+.stButton>button::before {
     content: '[ ';
 }
 
-.stButton > button::after {
+.stButton>button::after {
     content: ' ]';
 }
 
-.stButton > button:hover {
+.stButton>button:hover {
     background-color: var(--amber) !important;
     color: var(--obsidian) !important;
     text-shadow: none !important;
 }
 
-.stButton > button:focus {
+.stButton>button:focus {
     box-shadow: none !important;
     outline: none !important;
 }
@@ -142,12 +155,12 @@ h1 {
 /* ============================================
    PROGRESS BAR
    ============================================ */
-.stProgress > div > div {
+.stProgress>div>div {
     background-color: var(--slate-stroke) !important;
     border-radius: 0 !important;
 }
 
-.stProgress > div > div > div {
+.stProgress>div>div>div {
     background-color: var(--amber) !important;
     border-radius: 0 !important;
 }
@@ -159,7 +172,7 @@ h1 {
     color: var(--amber) !important;
 }
 
-[data-testid="stSelectbox"] > div > div {
+[data-testid="stSelectbox"]>div>div {
     background-color: var(--slate-stroke) !important;
     border: 1px solid var(--amber) !important;
     border-radius: 0 !important;
@@ -169,11 +182,11 @@ h1 {
 /* ============================================
    SLIDER
    ============================================ */
-.stSlider > div > div > div {
+.stSlider>div>div>div {
     background-color: var(--amber) !important;
 }
 
-.stSlider > div > div > div > div {
+.stSlider>div>div>div>div {
     background-color: var(--amber) !important;
     border-radius: 0 !important;
 }
@@ -181,7 +194,7 @@ h1 {
 /* ============================================
    TEXT INPUT
    ============================================ */
-.stTextInput > div > div > input {
+.stTextInput>div>div>input {
     background-color: var(--slate-stroke) !important;
     border: 1px solid var(--amber) !important;
     border-radius: 0 !important;
@@ -189,7 +202,7 @@ h1 {
     font-family: var(--font-mono) !important;
 }
 
-.stTextInput > div > div > input:focus {
+.stTextInput>div>div>input:focus {
     border-color: var(--amber) !important;
     box-shadow: var(--amber-glow) !important;
 }
@@ -197,7 +210,7 @@ h1 {
 /* ============================================
    TEXT AREA (LOG WINDOW)
    ============================================ */
-.stTextArea > div > div > textarea {
+.stTextArea>div>div>textarea {
     background-color: var(--obsidian) !important;
     border: 1px solid var(--slate-stroke) !important;
     border-radius: 0 !important;
@@ -232,8 +245,16 @@ hr {
 }
 
 @keyframes blink {
-    0%, 50% { opacity: 1; }
-    51%, 100% { opacity: 0.5; }
+
+    0%,
+    50% {
+        opacity: 1;
+    }
+
+    51%,
+    100% {
+        opacity: 0.5;
+    }
 }
 
 /* ============================================
@@ -264,7 +285,9 @@ hr {
 /* ============================================
    HIDE STREAMLIT BRANDING
    ============================================ */
-#MainMenu, footer, header {
+#MainMenu,
+footer,
+header {
     visibility: hidden !important;
 }
 
@@ -318,4 +341,57 @@ hr {
 .log-entry::before {
     content: '> ';
     color: var(--amber);
+}
+
+/* ============================================
+   AUDIO PLAYER STYLING
+   ============================================ */
+audio {
+    width: 100%;
+    height: 32px;
+    background-color: var(--obsidian) !important;
+    border: 1px solid var(--amber) !important;
+    border-radius: 0 !important;
+    outline: none;
+}
+
+audio::-webkit-media-controls-panel {
+    background-color: var(--obsidian) !important;
+    border-radius: 0 !important;
+}
+
+audio::-webkit-media-controls-play-button,
+audio::-webkit-media-controls-mute-button {
+    background-color: transparent;
+    filter: invert(70%) sepia(100%) saturate(500%) hue-rotate(0deg) brightness(100%);
+}
+
+audio::-webkit-media-controls-current-time-display,
+audio::-webkit-media-controls-time-remaining-display {
+    color: var(--amber) !important;
+    font-family: var(--font-mono) !important;
+    font-size: 11px !important;
+}
+
+audio::-webkit-media-controls-timeline {
+    background-color: var(--slate-stroke) !important;
+    border-radius: 0 !important;
+}
+
+/* ============================================
+   EXPANDER STYLING FOR LOG
+   ============================================ */
+[data-testid="stExpander"] {
+    border: 1px solid var(--slate-stroke) !important;
+    border-radius: 0 !important;
+    background-color: var(--obsidian) !important;
+}
+
+[data-testid="stExpander"] summary {
+    color: var(--amber) !important;
+    font-family: var(--font-mono) !important;
+}
+
+[data-testid="stExpander"] svg {
+    fill: var(--amber) !important;
 }
