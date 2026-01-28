@@ -426,3 +426,124 @@ assets/css/retro.css # Audio player, slider labels, link hiding
 
 *Next: Integrate full conversion pipeline with UI*
 
+---
+
+## 2026-01-29 - Phase 4: UI Polish Complete (Session 2)
+
+### Tasks Completed
+
+From `tasks/04_UI_POLISH.md`:
+
+**4.1 Progress Tracking**
+- [x] Create per-chapter progress bars
+- [x] Show current stage (parsing, cleaning, TTS, encoding)
+- [x] Display estimated time remaining
+- [x] Handle cancellation gracefully
+- [x] Persist progress across page refreshes
+
+**4.3 Waveform Visualizer**
+- [x] Create `modules/ui/waveform.py`
+- [x] Implement blocky oscilloscope style
+- [x] Use amber color (`#FFB000`)
+- [x] Animate during playback
+- [x] Show static preview when paused
+
+**4.5 Library View**
+- [x] Create library page/tab
+- [x] List all converted audiobooks
+- [x] Show title, author, date, duration
+- [x] Allow replay/re-export
+- [x] Allow deletion
+- [x] Search/filter functionality
+
+**4.6 Keyboard Shortcuts**
+- [x] `Ctrl+O` — Open file dialog
+- [x] `Space` — Play/Pause
+- [x] `Ctrl+L` — Toggle library
+- [x] `Ctrl+E` — Export current
+- [x] `Esc` — Cancel processing
+- [x] Display shortcut hints in UI
+
+---
+
+### Architecture Changes
+
+#### New Files Created
+
+```
+modules/ui/
+├── __init__.py     # Updated: exports all components
+├── progress.py     # NEW: ChapterProgress, ConversionProgress, rendering
+├── waveform.py     # NEW: ASCII oscilloscope visualizer
+├── library.py      # NEW: Book listing, search, detail view
+└── shortcuts.py    # NEW: JavaScript keyboard handlers
+```
+
+#### Key Design Decisions
+
+1. **Dataclass-based progress**: `ChapterProgress` and `ConversionProgress` use Python dataclasses for clean state management
+
+2. **ASCII waveform**: Uses Unicode block characters (`▁▂▃▄▅▆▇█`) for retro terminal aesthetic
+
+3. **Session state persistence**: Progress can be serialized to JSON and restored on page refresh
+
+4. **JavaScript keyboard handler**: Injected via `st.markdown` with hidden input for Streamlit to read actions
+
+5. **Database integration for library**: Uses existing `Database` class from `modules/storage/database.py`
+
+#### Module Exports
+
+```python
+# modules/ui/__init__.py exports:
+- ProcessingStage (enum)
+- ChapterProgress, ConversionProgress (dataclasses)
+- init_progress_state, get_progress, reset_progress
+- set_chapters, update_chapter_progress, set_current_stage
+- request_cancellation, is_cancelled, clear_cancellation
+- save_progress_to_session, restore_progress_from_session
+- render_chapter_progress, render_stage_indicator
+```
+
+---
+
+### Current State
+
+**What Works**:
+- Per-chapter progress bars with ASCII visualization
+- Processing stage indicator with color-coded status
+- ETA display (formatter ready, needs pipeline integration)
+- Cancellation support with graceful state cleanup
+- Progress persistence across page refreshes
+- Waveform visualizer with playback animation
+- Library view with search/filter and CRUD operations
+- Keyboard shortcuts (Ctrl+O, Space, Ctrl+L, Ctrl+E, Esc)
+
+**What's Next (Phase 5: Optimization & Testing)**:
+- [ ] Unit tests for all modules
+- [ ] Integration tests for full pipeline
+- [ ] Performance optimization for large files
+- [ ] Memory profiling and leak detection
+- [ ] Error handling improvements
+- [ ] Documentation updates
+
+---
+
+### Commits
+
+| Hash | Message |
+|------|---------|
+| 83eca66 | add progress tracking module |
+| 081d7e6 | export progress tracking components |
+| b10c3ab | integrate progress tracking component |
+| 60c17b5 | add cancellation and persistence support |
+| 3673a78 | export cancellation and persistence functions |
+| 286e0ad | add waveform visualizer component |
+| 5fe0e76 | integrate waveform visualizer component |
+| 944531a | add library view component |
+| a496c71 | add keyboard shortcuts module |
+
+---
+
+*Phase 4 complete. Ready for Phase 5: Optimization & Testing.*
+
+
