@@ -19,6 +19,7 @@ from modules.ui.progress import (
     render_stage_indicator,
     ProcessingStage,
 )
+from modules.ui.waveform import render_waveform_component
 
 # ============================================
 # PAGE CONFIGURATION
@@ -244,17 +245,10 @@ with main_col1:
     
     st.markdown("---")
     
-    # Waveform Placeholder
+    # Waveform Visualizer
     st.markdown("### [ waveform ]")
-    waveform_placeholder = st.empty()
-    with waveform_placeholder:
-        # ASCII waveform visualization with amber color
-        waveform = "▁▃▅▇█▇▅▃▁▃▅▇█▇▅▃▁▃▅▇█▇▅▃▁▃▅▇█▇▅▃▁▃▅▇█▇▅▃▁"
-        st.markdown(
-            f"<div style='font-family: monospace; color: #FFB000; "
-            f"text-shadow: 0 0 10px rgba(255, 176, 0, 0.5); font-size: 18px;'>{waveform}</div>",
-            unsafe_allow_html=True
-        )
+    is_playing = st.session_state.status == "playing"
+    render_waveform_component(is_playing=is_playing, playback_position=st.session_state.progress)
     
     st.markdown("---")
     
