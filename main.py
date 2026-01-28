@@ -58,6 +58,12 @@ if "selected_voice" not in st.session_state:
     st.session_state.selected_voice = "am_adam"
 if "selected_speed" not in st.session_state:
     st.session_state.selected_speed = 1.0
+if "tts_model_loaded" not in st.session_state:
+    st.session_state.tts_model_loaded = False
+if "tts_model_name" not in st.session_state:
+    st.session_state.tts_model_name = "Kokoro-82M-bf16"
+if "processing_stage" not in st.session_state:
+    st.session_state.processing_stage = "idle"
 
 def add_log(message: str):
     """Add a message to the log window."""
@@ -168,6 +174,16 @@ with main_col1:
         st.session_state.status = "ready"
         add_log(f"file loaded: {uploaded_file.name}")
         st.markdown(f"**loaded:** `{uploaded_file.name}`")
+        
+        # START CONVERSION BUTTON
+        st.markdown("")
+        if st.button("▶ START CONVERSION", use_container_width=True, type="primary"):
+            st.session_state.status = "processing"
+            st.session_state.processing_stage = "loading_model"
+            st.session_state.tts_model_loaded = True
+            add_log("starting conversion...")
+            add_log(f"loading TTS model: {st.session_state.tts_model_name}")
+            st.rerun()
     
     st.markdown("---")
     
@@ -232,8 +248,25 @@ with main_col2:
     
     # Processing Info
     st.markdown("### [ processing ]")
-    st.markdown(f"stage: `idle`")
+    st.markdown(f"stage: `{st.session_state.processing_stage}`")
     st.markdown(f"eta: `--:--`")
+    
+    st.markdown("---")
+    
+    # Model Status
+    st.markdown("### [ model ]")
+    if st.session_state.tts_model_loaded:
+        st.markdown(
+            f"<span style='color: #00FF00;'>●</span> `{st.session_state.tts_model_name}`",
+            unsafe_allow_html=True
+        )
+        st.markdown("status: `loaded`")
+    else:
+        st.markdown(
+            "<span style='color: #555555;'>○</span> `not loaded`",
+            unsafe_allow_html=True
+        )
+        st.markdown("status: `standby`")
 
 # ============================================
 # LOG WINDOW (Bottom)
