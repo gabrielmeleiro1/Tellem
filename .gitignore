@@ -51,6 +51,7 @@ data/*.db
 
 # Markdown files (documentation only)
 *.md
+!docs/ENGINEERING_DIARY.md
 
 # Environment
 .env
