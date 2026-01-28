@@ -76,3 +76,31 @@ def get_voice(voice_id: str) -> Voice:
 def list_voices() -> list[str]:
     """List all available voice IDs."""
     return list(VOICES.keys())
+
+
+def get_voice_choices() -> list[tuple[str, str]]:
+    """
+    Get voice choices for UI dropdowns.
+    
+    Returns:
+        List of (display_name, voice_id) tuples
+    """
+    choices = []
+    for voice in VOICES.values():
+        display = f"{voice.name} ({voice.accent.title()} {voice.gender.title()}) - {voice.style}"
+        choices.append((display, voice.id))
+    return sorted(choices)
+
+
+# Speed configuration
+DEFAULT_SPEED = 1.0
+MIN_SPEED = 0.5
+MAX_SPEED = 2.0
+
+SPEED_PRESETS = {
+    "slow": 0.75,
+    "normal": 1.0,
+    "fast": 1.25,
+    "very_fast": 1.5,
+}
+
