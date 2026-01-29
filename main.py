@@ -27,7 +27,7 @@ from modules.ui.conversion import (
     add_log as conversion_add_log,
 )
 from modules.storage.database import Database, Book, Chapter
-from modules.ui.monitor import render_system_stats
+
 from modules.ui.terminal import render_terminal_view, add_terminal_log
 
 # ============================================
@@ -211,9 +211,7 @@ with st.sidebar:
     st.markdown(f"voice: `{voice}`")
     st.markdown(f"speed: `{speed}x`")
     
-    # System Monitor
-    st.markdown("### [ system ]")
-    render_system_stats()
+
 
 # ============================================
 # MAIN CONTENT AREA
