@@ -12,6 +12,14 @@ import ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
 
+from modules.errors import (
+    validate_epub,
+    EPUBParsingError,
+    CorruptedFileError,
+    EmptyChapterError,
+    ChapterTooLongError,
+)
+
 
 @dataclass
 class Chapter:
@@ -39,12 +47,16 @@ class EPUBParser:
     Uses EbookLib for EPUB extraction and BeautifulSoup4 for HTML parsing.
     """
     
-    def __init__(self, file_path: Path | str):
+    # Maximum words per chapter before warning
+    MAX_CHAPTER_WORDS = 50000
+    
+    def __init__(self, file_path: Path | str, validate: bool = True):
         """
         Initialize the parser with an EPUB file.
         
         Args:
             file_path: Path to the EPUB file
+            validate: Whether to validate the EPUB structure
         """
         self.file_path = Path(file_path)
         if not self.file_path.exists():
@@ -52,13 +64,30 @@ class EPUBParser:
         if self.file_path.suffix.lower() != ".epub":
             raise ValueError(f"Not an EPUB file: {self.file_path}")
         
+        # Validate EPUB structure
+        if validate:
+            try:
+                validate_epub(self.file_path)
+            except (CorruptedFileError, EPUBParsingError) as e:
+                raise EPUBParsingError(
+                    message=str(e.message),
+                    details=e.details if hasattr(e, 'details') else None,
+                    file_path=self.file_path
+                )
+        
         self._book: Optional[epub.EpubBook] = None
         self._chapters: list[Chapter] = []
     
     def _load_book(self) -> epub.EpubBook:
         """Load the EPUB book if not already loaded."""
         if self._book is None:
-            self._book = epub.read_epub(str(self.file_path))
+            try:
+                self._book = epub.read_epub(str(self.file_path))
+            except Exception as e:
+                raise EPUBParsingError(
+                    message=f"Failed to read EPUB: {str(e)}",
+                    file_path=self.file_path
+                )
         return self._book
     
     def parse(self) -> Document:
@@ -80,15 +109,25 @@ class EPUBParser:
             publisher=metadata.get("publisher")
         )
     
-    def extract_chapters(self) -> list[Chapter]:
+    def extract_chapters(self, skip_empty: bool = True, max_chapter_words: int = None) -> list[Chapter]:
         """
         Extract all chapters from the EPUB.
         
+        Args:
+            skip_empty: If True, silently skip empty chapters. If False, raise EmptyChapterError.
+            max_chapter_words: Maximum words per chapter (raises ChapterTooLongError if exceeded).
+        
         Returns:
             List of Chapter objects with cleaned text content
+            
+        Raises:
+            EmptyChapterError: If chapter is empty and skip_empty=False
+            ChapterTooLongError: If chapter exceeds max_chapter_words
         """
         if self._chapters:
             return self._chapters
+        
+        max_words = max_chapter_words or self.MAX_CHAPTER_WORDS
         
         book = self._load_book()
         chapters = []
@@ -97,15 +136,28 @@ class EPUBParser:
         # Iterate through spine (reading order)
         for item in book.get_items():
             if item.get_type() == ebooklib.ITEM_DOCUMENT:
-                html_content = item.get_content().decode("utf-8")
+                try:
+                    html_content = item.get_content().decode("utf-8")
+                except UnicodeDecodeError:
+                    # Try with latin-1 fallback
+                    html_content = item.get_content().decode("latin-1")
+                
                 text_content = self._html_to_text(html_content)
+                content_stripped = text_content.strip()
                 
                 # Skip empty or very short content
-                if len(text_content.strip()) < 50:
+                if len(content_stripped) < 50:
+                    if not skip_empty and len(content_stripped) == 0:
+                        raise EmptyChapterError(chapter_num + 1)
                     continue
                 
                 chapter_num += 1
                 title = self._extract_title(html_content) or f"Chapter {chapter_num}"
+                
+                # Check for extremely long chapter
+                word_count = len(content_stripped.split())
+                if word_count > max_words:
+                    raise ChapterTooLongError(chapter_num, word_count, max_words)
                 
                 chapters.append(Chapter(
                     number=chapter_num,
@@ -113,6 +165,13 @@ class EPUBParser:
                     content=text_content,
                     html_content=html_content
                 ))
+        
+        # Check if we got any chapters
+        if not chapters:
+            raise EPUBParsingError(
+                message="No readable chapters found in EPUB",
+                file_path=self.file_path
+            )
         
         self._chapters = chapters
         return chapters
