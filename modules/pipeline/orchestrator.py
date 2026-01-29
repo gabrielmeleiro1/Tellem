@@ -350,8 +350,10 @@ class ConversionPipeline:
                 message=f"Chunking: {chapter.title}",
             )
             
-            chunker = TextChunker(max_tokens=self.config.chunk_size)
-            chunks = chunker.chunk_text(chapter.content)
+            from modules.tts.chunker import TextChunker, ChunkConfig
+            config = ChunkConfig(max_tokens=self.config.chunk_size)
+            chunker = TextChunker(config=config)
+            chunks = chunker.chunk(chapter.content)
             total_chunks = len(chunks)
             
             if total_chunks == 0:
