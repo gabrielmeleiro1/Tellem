@@ -147,6 +147,26 @@ class TextCleaner:
     
     def _rule_based_clean(self, text: str) -> str:
         """Apply rule-based text cleaning (fast, always runs)."""
+        # 1. Remove Markdown Headers (at start of line)
+        # Matches #, ##, ### etc followed by space
+        text = re.sub(r'(?m)^#{1,6}\s+', '', text)
+        
+        # 2. Remove Bold/Italic markers (*, **, _, __)
+        # We want to keep the text inside, just remove markers
+        # Removing all instances of * and _ might be too aggressive if used for other things,
+        # but in normal prose they are usually formatting.
+        text = re.sub(r'[\*_]{1,3}([^\*_]+)[\*_]{1,3}', r'\1', text)
+        
+        # 3. Handle Links: [text](url) -> text
+        text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
+        
+        # 4. Handle Images: ![alt](url) -> remove entirely or keep alt text?
+        # Usually alt text is descriptive. Let's keep alt text: ![alt] -> alt
+        text = re.sub(r'!\[([^\]]*)\]\([^\)]+\)', r'\1', text)
+        
+        # 5. Remove Code formatting backticks
+        text = re.sub(r'`', '', text)
+        
         # Common abbreviations
         abbreviations = {
             r'\bDr\.\s': 'Doctor ',
