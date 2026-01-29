@@ -67,8 +67,8 @@ class ConversionResult:
     
 
 # Type alias for progress callback
-ProgressCallback = Callable[[PipelineStage, int, int, int, int, str], None]
-# Args: stage, chapter_idx, total_chapters, chunk_idx, total_chunks, message
+ProgressCallback = Callable[[PipelineStage, int, int, int, int, str, Optional[float]], None]
+# Args: stage, chapter_idx, total_chapters, chunk_idx, total_chunks, message, eta_seconds
 
 
 class ConversionPipeline:
@@ -151,6 +151,7 @@ class ConversionPipeline:
                 chunk_idx,
                 total_chunks,
                 message,
+                self.estimate_eta(),
             )
     
     def estimate_eta(self) -> Optional[float]:
