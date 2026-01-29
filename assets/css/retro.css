@@ -1,30 +1,46 @@
 /* ============================================
-   AUDIOBOOK CREATOR - AMBER & OBSIDIAN THEME
-   Retro CRT Terminal Aesthetic
+   AUDIOBOOK CREATOR - PALANTIR-INSPIRED THEME
+   Matte, serious, dark, professional
    ============================================ */
 
-/* Import JetBrains Mono from Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+/* Import Inter for clean, serious typography */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* ============================================
    CSS VARIABLES
    ============================================ */
 :root {
-    /* Core Palette */
-    --obsidian: #0A0A0A;
-    --amber: #FFB000;
-    --amber-dim: #CC8C00;
-    --signal-red: #FF4500;
-    --dim-gray: #555555;
-    --slate-stroke: #1A1A1A;
+    /* Core Palette - Matte Dark Tones */
+    --void: #0A0A0B;
+    --ink: #111113;
+    --charcoal: #18181A;
+    --graphite: #1E1E20;
+    --slate: #27272A;
+    --stone: #3F3F46;
+    --concrete: #52525B;
 
-    /* Glow Effects */
-    --amber-glow: 0 0 10px rgba(255, 176, 0, 0.5), 0 0 20px rgba(255, 176, 0, 0.3);
-    --amber-glow-strong: 0 0 10px rgba(255, 176, 0, 0.8), 0 0 30px rgba(255, 176, 0, 0.5);
+    /* Muted Accent Colors */
+    --rust: #9A3412;
+    --rust-dim: #7C2D12;
+    --rust-light: #C2410C;
+    --forest: #166534;
+    --forest-dim: #14532D;
+    --forest-light: #15803D;
+
+    /* Neutral Text */
+    --text-primary: #E4E4E7;
+    --text-secondary: #A1A1AA;
+    --text-muted: #71717A;
+    --text-subtle: #52525B;
+
+    /* Subtle Effects */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
 
     /* Typography */
-    --font-mono: 'JetBrains Mono', 'Roboto Mono', 'Fira Code', monospace;
-    --font-size-base: 14px;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-size-base: 13px;
     --line-height: 1.5;
 }
 
@@ -34,54 +50,53 @@
 html,
 body,
 [data-testid="stAppViewContainer"] {
-    background-color: var(--obsidian) !important;
-    color: var(--amber) !important;
-    font-family: var(--font-mono) !important;
+    background-color: var(--void) !important;
+    color: var(--text-primary) !important;
+    font-family: var(--font-sans) !important;
     font-size: var(--font-size-base) !important;
     line-height: var(--line-height) !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 /* Remove default Streamlit padding */
 .block-container {
-    padding-top: 2rem !important;
-    padding-bottom: 2rem !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    max-width: 100% !important;
 }
 
 /* ============================================
-   SCANLINE OVERLAY
+   TYPOGRAPHY
    ============================================ */
-[data-testid="stAppViewContainer"]::after {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: repeating-linear-gradient(0deg,
-            transparent,
-            transparent 2px,
-            rgba(0, 0, 0, 0.03) 2px,
-            rgba(0, 0, 0, 0.03) 4px);
-    pointer-events: none;
-    z-index: 9999;
-}
-
-/* ============================================
-   PHOSPHOR GLOW TEXT
-   ============================================ */
-h1,
-h2,
-h3,
-.glow-text {
-    text-shadow: var(--amber-glow) !important;
-    color: var(--amber) !important;
-}
-
-/* Strong glow for main title */
 h1 {
-    text-shadow: var(--amber-glow-strong) !important;
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    font-size: 20px !important;
+    letter-spacing: -0.02em;
+    border-bottom: 1px solid var(--slate);
+    padding-bottom: 12px;
+    margin-bottom: 20px !important;
+}
+
+h2, h3 {
+    color: var(--text-primary) !important;
+    font-weight: 500 !important;
+    letter-spacing: -0.01em;
+}
+
+h2 {
+    font-size: 16px !important;
+    margin-top: 24px !important;
+    margin-bottom: 12px !important;
+}
+
+h3 {
+    font-size: 13px !important;
+    color: var(--text-secondary) !important;
     text-transform: uppercase;
-    letter-spacing: 2px;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px !important;
 }
 
 /* Hide anchor links on headers */
@@ -98,132 +113,218 @@ a.anchor-link,
    SIDEBAR STYLING
    ============================================ */
 [data-testid="stSidebar"] {
-    background-color: var(--obsidian) !important;
-    border-right: 1px solid var(--slate-stroke) !important;
+    background-color: var(--ink) !important;
+    border-right: 1px solid var(--slate) !important;
+    position: fixed !important;
+    height: 100vh !important;
+    overflow-y: auto !important;
 }
 
 [data-testid="stSidebar"]>div:first-child {
-    background-color: var(--obsidian) !important;
+    background-color: var(--ink) !important;
+    height: 100% !important;
+    overflow-y: auto !important;
+}
+
+/* Ensure sidebar content stays fixed */
+[data-testid="stSidebar"] .block-container {
+    position: relative !important;
+}
+
+[data-testid="stSidebar"] h3 {
+    color: var(--text-muted) !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 24px 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--graphite);
 }
 
 /* ============================================
-   BRACKET BUTTONS
+   BUTTONS
    ============================================ */
 .stButton>button {
-    background-color: transparent !important;
-    color: var(--amber) !important;
-    border: none !important;
-    border-radius: 0 !important;
-    font-family: var(--font-mono) !important;
-    font-size: var(--font-size-base) !important;
-    padding: 0.5rem 1rem !important;
-    transition: all 0.1s ease !important;
-}
-
-.stButton>button::before {
-    content: '[ ';
-}
-
-.stButton>button::after {
-    content: ' ]';
+    background-color: var(--charcoal) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--stone) !important;
+    border-radius: 4px !important;
+    font-family: var(--font-sans) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    padding: 8px 16px !important;
+    transition: all 0.15s ease !important;
+    box-shadow: var(--shadow-sm) !important;
 }
 
 .stButton>button:hover {
-    background-color: var(--amber) !important;
-    color: var(--obsidian) !important;
-    text-shadow: none !important;
+    background-color: var(--graphite) !important;
+    border-color: var(--concrete) !important;
+    color: var(--text-primary) !important;
+}
+
+.stButton>button:active {
+    background-color: var(--slate) !important;
+    transform: translateY(1px);
 }
 
 .stButton>button:focus {
-    box-shadow: none !important;
     outline: none !important;
+    border-color: var(--rust) !important;
+    box-shadow: 0 0 0 2px rgba(154, 52, 18, 0.2) !important;
+}
+
+/* Primary/Action buttons */
+.stButton>button[kind="primary"] {
+    background-color: var(--rust) !important;
+    border-color: var(--rust) !important;
+    color: var(--text-primary) !important;
+}
+
+.stButton>button[kind="primary"]:hover {
+    background-color: var(--rust-light) !important;
+    border-color: var(--rust-light) !important;
 }
 
 /* ============================================
    FILE UPLOADER
    ============================================ */
 [data-testid="stFileUploader"] {
-    background-color: var(--slate-stroke) !important;
-    border: 1px dashed var(--amber) !important;
-    border-radius: 0 !important;
+    background-color: var(--charcoal) !important;
+    border: 1px dashed var(--stone) !important;
+    border-radius: 4px !important;
+    padding: 32px !important;
 }
 
 [data-testid="stFileUploader"] label {
-    color: var(--amber) !important;
+    color: var(--text-secondary) !important;
+    font-size: 13px !important;
+}
+
+[data-testid="stFileUploader"]:hover {
+    border-color: var(--concrete) !important;
+    background-color: var(--graphite) !important;
 }
 
 /* ============================================
    PROGRESS BAR
    ============================================ */
 .stProgress>div>div {
-    background-color: var(--slate-stroke) !important;
-    border-radius: 0 !important;
+    background-color: var(--slate) !important;
+    border-radius: 2px !important;
+    height: 4px !important;
 }
 
 .stProgress>div>div>div {
-    background-color: var(--amber) !important;
-    border-radius: 0 !important;
+    background-color: var(--rust) !important;
+    border-radius: 2px !important;
 }
 
 /* ============================================
    SELECT BOX / DROPDOWN
    ============================================ */
 [data-testid="stSelectbox"] {
-    color: var(--amber) !important;
+    color: var(--text-primary) !important;
 }
 
 [data-testid="stSelectbox"]>div>div {
-    background-color: var(--slate-stroke) !important;
-    border: 1px solid var(--amber) !important;
-    border-radius: 0 !important;
-    color: var(--amber) !important;
+    background-color: var(--charcoal) !important;
+    border: 1px solid var(--stone) !important;
+    border-radius: 4px !important;
+    color: var(--text-primary) !important;
+}
+
+[data-testid="stSelectbox"]>div>div:hover {
+    border-color: var(--concrete) !important;
+}
+
+/* Dropdown menu */
+[data-testid="stSelectbox"] ul {
+    background-color: var(--ink) !important;
+    border: 1px solid var(--slate) !important;
+    border-radius: 4px !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+[data-testid="stSelectbox"] li {
+    color: var(--text-primary) !important;
+}
+
+[data-testid="stSelectbox"] li:hover {
+    background-color: var(--charcoal) !important;
 }
 
 /* ============================================
    SLIDER
    ============================================ */
 .stSlider>div>div>div {
-    background-color: var(--amber) !important;
+    background-color: var(--rust) !important;
 }
 
 .stSlider>div>div>div>div {
-    background-color: var(--amber) !important;
-    border-radius: 0 !important;
+    background-color: var(--text-primary) !important;
+    border-radius: 50% !important;
+    width: 14px !important;
+    height: 14px !important;
+    border: 2px solid var(--charcoal) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+/* Slider track */
+.stSlider>div>div {
+    background-color: var(--slate) !important;
+    height: 4px !important;
+    border-radius: 2px !important;
 }
 
 /* Slider min/max value labels */
 [data-testid="stSlider"] [data-testid="stTickBarMin"],
 [data-testid="stSlider"] [data-testid="stTickBarMax"] {
     background-color: transparent !important;
-    color: var(--amber) !important;
+    color: var(--text-muted) !important;
+    font-size: 11px !important;
 }
 
 /* ============================================
    TEXT INPUT
    ============================================ */
 .stTextInput>div>div>input {
-    background-color: var(--slate-stroke) !important;
-    border: 1px solid var(--amber) !important;
-    border-radius: 0 !important;
-    color: var(--amber) !important;
-    font-family: var(--font-mono) !important;
+    background-color: var(--charcoal) !important;
+    border: 1px solid var(--stone) !important;
+    border-radius: 4px !important;
+    color: var(--text-primary) !important;
+    font-family: var(--font-sans) !important;
+    padding: 8px 12px !important;
+    font-size: 13px !important;
 }
 
 .stTextInput>div>div>input:focus {
-    border-color: var(--amber) !important;
-    box-shadow: var(--amber-glow) !important;
+    border-color: var(--rust) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(154, 52, 18, 0.15) !important;
+}
+
+.stTextInput>div>div>input::placeholder {
+    color: var(--text-muted) !important;
 }
 
 /* ============================================
    TEXT AREA (LOG WINDOW)
    ============================================ */
 .stTextArea>div>div>textarea {
-    background-color: var(--obsidian) !important;
-    border: 1px solid var(--slate-stroke) !important;
-    border-radius: 0 !important;
-    color: var(--dim-gray) !important;
-    font-family: var(--font-mono) !important;
+    background-color: var(--ink) !important;
+    border: 1px solid var(--graphite) !important;
+    border-radius: 4px !important;
+    color: var(--text-secondary) !important;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace !important;
     font-size: 12px !important;
+    line-height: 1.6 !important;
+}
+
+.stTextArea>div>div>textarea:focus {
+    border-color: var(--stone) !important;
+    outline: none !important;
 }
 
 /* ============================================
@@ -231,62 +332,62 @@ a.anchor-link,
    ============================================ */
 hr {
     border: none !important;
-    border-top: 1px solid var(--slate-stroke) !important;
-    margin: 1rem 0 !important;
+    border-top: 1px solid var(--slate) !important;
+    margin: 20px 0 !important;
 }
 
 /* ============================================
    STATUS INDICATORS
    ============================================ */
 .status-ready {
-    color: var(--amber) !important;
+    color: var(--forest-light) !important;
 }
 
 .status-processing {
-    color: var(--amber) !important;
-    animation: blink 1s infinite;
+    color: var(--rust) !important;
 }
 
 .status-error {
-    color: var(--signal-red) !important;
-}
-
-@keyframes blink {
-
-    0%,
-    50% {
-        opacity: 1;
-    }
-
-    51%,
-    100% {
-        opacity: 0.5;
-    }
+    color: #DC2626 !important;
 }
 
 /* ============================================
    METRICS / STATS
    ============================================ */
 [data-testid="stMetricValue"] {
-    color: var(--amber) !important;
-    font-family: var(--font-mono) !important;
+    color: var(--text-primary) !important;
+    font-family: var(--font-sans) !important;
+    font-weight: 600 !important;
+    font-size: 24px !important;
 }
 
 [data-testid="stMetricLabel"] {
-    color: var(--dim-gray) !important;
+    color: var(--text-muted) !important;
     text-transform: uppercase !important;
     font-size: 10px !important;
-    letter-spacing: 1px !important;
+    letter-spacing: 0.08em !important;
+    font-weight: 500 !important;
+}
+
+[data-testid="stMetricDelta"] {
+    color: var(--forest-light) !important;
 }
 
 /* ============================================
    EXPANDER
    ============================================ */
 .streamlit-expanderHeader {
-    background-color: var(--slate-stroke) !important;
-    border: 1px solid var(--slate-stroke) !important;
-    border-radius: 0 !important;
-    color: var(--amber) !important;
+    background-color: var(--charcoal) !important;
+    border: 1px solid var(--graphite) !important;
+    border-radius: 4px !important;
+    color: var(--text-primary) !important;
+    font-weight: 500 !important;
+    font-size: 13px !important;
+}
+
+.streamlit-expanderHeader:hover {
+    border-color: var(--stone) !important;
+    background-color: var(--graphite) !important;
 }
 
 /* ============================================
@@ -302,52 +403,57 @@ header {
    CUSTOM WAVEFORM CONTAINER
    ============================================ */
 .waveform-container {
-    background-color: var(--obsidian);
-    border: 1px solid var(--slate-stroke);
-    padding: 1rem;
-    margin: 1rem 0;
-    font-family: var(--font-mono);
-    color: var(--amber);
-    text-shadow: var(--amber-glow);
+    background-color: var(--charcoal);
+    border: 1px solid var(--graphite);
+    border-radius: 4px;
+    padding: 20px;
+    margin: 16px 0;
+    font-family: var(--font-sans);
+    color: var(--text-secondary);
 }
 
 /* ============================================
    HEADER STRIP
    ============================================ */
 .header-strip {
-    background-color: var(--obsidian);
-    border-bottom: 1px solid var(--slate-stroke);
-    padding: 0.5rem 1rem;
+    background-color: var(--ink);
+    border-bottom: 1px solid var(--slate);
+    padding: 16px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    color: var(--text-secondary);
+    margin: -1rem -1rem 1rem -1rem;
 }
 
 /* ============================================
    LOG WINDOW
    ============================================ */
 .log-window {
-    background-color: var(--obsidian);
-    border: 1px solid var(--slate-stroke);
-    padding: 0.5rem;
+    background-color: var(--ink);
+    border: 1px solid var(--graphite);
+    border-radius: 4px;
+    padding: 12px;
     font-size: 12px;
-    color: var(--dim-gray);
-    max-height: 150px;
+    color: var(--text-secondary);
+    max-height: 200px;
     overflow-y: auto;
-    font-family: var(--font-mono);
+    font-family: 'SF Mono', Monaco, monospace;
+    line-height: 1.6;
 }
 
 .log-entry {
     margin: 0;
-    padding: 2px 0;
+    padding: 3px 0;
+    border-left: 2px solid var(--stone);
+    padding-left: 10px;
 }
 
 .log-entry::before {
-    content: '> ';
-    color: var(--amber);
+    content: '›';
+    color: var(--rust);
+    margin-right: 8px;
 }
 
 /* ============================================
@@ -355,50 +461,238 @@ header {
    ============================================ */
 audio {
     width: 100%;
-    height: 32px;
-    background-color: var(--obsidian) !important;
-    border: 1px solid var(--amber) !important;
-    border-radius: 0 !important;
+    height: 36px;
+    background-color: var(--charcoal) !important;
+    border: 1px solid var(--graphite) !important;
+    border-radius: 4px !important;
     outline: none;
 }
 
 audio::-webkit-media-controls-panel {
-    background-color: var(--obsidian) !important;
-    border-radius: 0 !important;
+    background-color: var(--charcoal) !important;
+    border-radius: 4px !important;
 }
 
 audio::-webkit-media-controls-play-button,
 audio::-webkit-media-controls-mute-button {
     background-color: transparent;
-    filter: invert(70%) sepia(100%) saturate(500%) hue-rotate(0deg) brightness(100%);
+    filter: invert(60%) sepia(10%) saturate(100%);
 }
 
 audio::-webkit-media-controls-current-time-display,
 audio::-webkit-media-controls-time-remaining-display {
-    color: var(--amber) !important;
-    font-family: var(--font-mono) !important;
+    color: var(--text-secondary) !important;
+    font-family: var(--font-sans) !important;
     font-size: 11px !important;
 }
 
 audio::-webkit-media-controls-timeline {
-    background-color: var(--slate-stroke) !important;
-    border-radius: 0 !important;
+    background-color: var(--slate) !important;
+    border-radius: 2px !important;
 }
 
 /* ============================================
    EXPANDER STYLING FOR LOG
    ============================================ */
 [data-testid="stExpander"] {
-    border: 1px solid var(--slate-stroke) !important;
-    border-radius: 0 !important;
-    background-color: var(--obsidian) !important;
+    border: 1px solid var(--graphite) !important;
+    border-radius: 4px !important;
+    background-color: var(--charcoal) !important;
 }
 
 [data-testid="stExpander"] summary {
-    color: var(--amber) !important;
-    font-family: var(--font-mono) !important;
+    color: var(--text-primary) !important;
+    font-family: var(--font-sans) !important;
+    font-weight: 500 !important;
+    font-size: 13px !important;
 }
 
 [data-testid="stExpander"] svg {
-    fill: var(--amber) !important;
+    fill: var(--text-muted) !important;
+}
+
+/* ============================================
+   CHECKBOX & RADIO
+   ============================================ */
+[data-testid="stCheckbox"] label,
+[data-testid="stRadio"] label {
+    color: var(--text-primary) !important;
+    font-family: var(--font-sans) !important;
+}
+
+[data-testid="stCheckbox"] input[type="checkbox"],
+[data-testid="stRadio"] input[type="radio"] {
+    accent-color: var(--rust) !important;
+}
+
+/* ============================================
+   TOGGLE SWITCH
+   ============================================ */
+[data-testid="stToggle"] button {
+    background-color: var(--slate) !important;
+}
+
+[data-testid="stToggle"] button[aria-checked="true"] {
+    background-color: var(--forest) !important;
+}
+
+/* ============================================
+   DATAFRAMES / TABLES
+   ============================================ */
+[data-testid="stDataFrame"] {
+    border: 1px solid var(--graphite) !important;
+    border-radius: 4px !important;
+}
+
+[data-testid="stDataFrame"] th {
+    background-color: var(--charcoal) !important;
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    font-size: 11px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--slate) !important;
+}
+
+[data-testid="stDataFrame"] td {
+    background-color: var(--ink) !important;
+    color: var(--text-secondary) !important;
+    border-bottom: 1px solid var(--graphite) !important;
+}
+
+[data-testid="stDataFrame"] tr:hover td {
+    background-color: var(--charcoal) !important;
+}
+
+/* ============================================
+   TABS
+   ============================================ */
+[data-testid="stTabs"] button {
+    background-color: transparent !important;
+    color: var(--text-muted) !important;
+    border: none !important;
+    border-bottom: 2px solid transparent !important;
+    border-radius: 0 !important;
+    font-weight: 500 !important;
+    font-size: 13px !important;
+    padding: 8px 16px !important;
+}
+
+[data-testid="stTabs"] button[aria-selected="true"] {
+    color: var(--text-primary) !important;
+    border-bottom-color: var(--rust) !important;
+}
+
+[data-testid="stTabs"] button:hover {
+    color: var(--text-secondary) !important;
+}
+
+/* ============================================
+   ALERTS / INFO BOXES
+   ============================================ */
+[data-testid="stAlert"] {
+    border-radius: 4px !important;
+    border-left-width: 3px !important;
+}
+
+[data-testid="stAlert"][data-baseweb="notification"][kind="info"] {
+    background-color: var(--charcoal) !important;
+    border-color: var(--stone) !important;
+    color: var(--text-secondary) !important;
+}
+
+[data-testid="stAlert"][data-baseweb="notification"][kind="success"] {
+    background-color: var(--charcoal) !important;
+    border-color: var(--forest) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-testid="stAlert"][data-baseweb="notification"][kind="warning"] {
+    background-color: var(--charcoal) !important;
+    border-color: var(--rust) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-testid="stAlert"][data-baseweb="notification"][kind="error"] {
+    background-color: var(--charcoal) !important;
+    border-color: #DC2626 !important;
+    color: var(--text-primary) !important;
+}
+
+/* ============================================
+   SPINNER / LOADING
+   ============================================ */
+[data-testid="stSpinner"] {
+    color: var(--text-secondary) !important;
+}
+
+[data-testid="stSpinner"] svg {
+    fill: var(--rust) !important;
+}
+
+/* ============================================
+   TOOLTIP
+   ============================================ */
+[data-testid="stTooltip"] {
+    background-color: var(--ink) !important;
+    border: 1px solid var(--slate) !important;
+    border-radius: 4px !important;
+    color: var(--text-primary) !important;
+    font-family: var(--font-sans) !important;
+    font-size: 12px !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+/* ============================================
+   SCROLLBAR STYLING
+   ============================================ */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--ink);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--stone);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--concrete);
+}
+
+/* ============================================
+   SELECTION HIGHLIGHT
+   ============================================ */
+::selection {
+    background-color: rgba(154, 52, 18, 0.3);
+    color: var(--text-primary);
+}
+
+/* ============================================
+   CODE BLOCKS
+   ============================================ */
+code, pre {
+    background-color: var(--ink) !important;
+    color: var(--text-secondary) !important;
+    border: 1px solid var(--graphite) !important;
+    border-radius: 4px !important;
+    font-family: 'SF Mono', Monaco, monospace !important;
+    font-size: 12px !important;
+}
+
+/* ============================================
+   LINKS
+   ============================================ */
+a {
+    color: var(--rust-light) !important;
+    text-decoration: none !important;
+}
+
+a:hover {
+    color: var(--rust) !important;
+    text-decoration: underline !important;
 }

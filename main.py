@@ -26,6 +26,7 @@ from modules.ui.conversion import (
     init_conversion_state,
     add_log as conversion_add_log,
 )
+from modules.storage.database import Database, Book, Chapter
 
 # ============================================
 # PAGE CONFIGURATION
@@ -256,6 +257,30 @@ with main_col1:
             if result.success:
                 st.session_state.status = "complete"
                 add_log(f"conversion complete: {result.output_path}")
+                
+                # Save to Library Database
+                try:
+                    db = Database()
+                    book_id = db.create_book(
+                        title=result.title,
+                        author=result.author,
+                        source_path=uploaded_file.name,  # Using original filename as source path reference
+                        source_type=Path(uploaded_file.name).suffix.lstrip(".").lower(),
+                        total_chapters=len(result.chapters)
+                    )
+                    
+                    for ch in result.chapters:
+                        db.create_chapter(
+                            book_id=book_id,
+                            chapter_number=ch.chapter_number,
+                            title=ch.chapter_title,
+                            duration_ms=ch.duration_ms,
+                            mp3_path=str(ch.mp3_path) if ch.mp3_path else None
+                        )
+                    add_log("added to library")
+                except Exception as e:
+                    add_log(f"database error: {e}")
+                
             else:
                 st.session_state.status = "error"
                 add_log(f"conversion failed: {result.error}")
@@ -274,6 +299,20 @@ with main_col1:
                         mime="audio/mp4",
                         use_container_width=True,
                     )
+                
+                st.markdown("")
+                with st.expander("download chapters"):
+                    for ch in result.chapters:
+                        if ch.mp3_path and ch.mp3_path.exists():
+                            with open(ch.mp3_path, "rb") as f:
+                                st.download_button(
+                                    label=f"{ch.chapter_number:02d}. {ch.chapter_title}",
+                                    data=f.read(),
+                                    file_name=ch.mp3_path.name,
+                                    mime="audio/mpeg",
+                                    key=f"dl_ch_{ch.chapter_number}",
+                                    use_container_width=True,
+                                )
     
     st.markdown("---")
     
