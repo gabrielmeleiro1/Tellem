@@ -21,6 +21,7 @@ class PipelineStage(Enum):
     IDLE = "idle"
     INGESTING = "ingesting"
     CHUNKING = "chunking"
+    CLEANING = "cleaning"
     SYNTHESIZING = "synthesizing"
     ENCODING = "encoding"
     PACKAGING = "packaging"
@@ -355,6 +356,33 @@ class ConversionPipeline:
             if total_chunks == 0:
                 result.error = "No text content"
                 return result
+            
+            # Stage 2.5: Clean text
+            self._stage = PipelineStage.CLEANING
+            from modules.tts.cleaner import TextCleaner
+            
+            cleaned_chunks = []
+            
+            # Clean chunks with progress updates
+            # Use context manager to ensure model unloads if used
+            with TextCleaner() as cleaner:
+                for chunk_idx, chunk in enumerate(chunks):
+                    if self._check_cancelled():
+                        result.error = "Cancelled"
+                        return result
+                    
+                    self._notify_progress(
+                        chapter_idx=chapter_idx,
+                        total_chapters=total_chapters,
+                        chunk_idx=chunk_idx,
+                        total_chunks=total_chunks,
+                        message=f"Cleaning chunk {chunk_idx + 1}/{total_chunks}",
+                    )
+                    
+                    cleaned_chunk = cleaner.clean(chunk)
+                    cleaned_chunks.append(cleaned_chunk)
+            
+            chunks = cleaned_chunks
             
             # Stage 3: Synthesize each chunk
             self._stage = PipelineStage.SYNTHESIZING
