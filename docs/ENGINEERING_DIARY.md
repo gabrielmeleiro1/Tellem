@@ -689,3 +689,28 @@ From `tasks/05_OPTIMIZATION.md`:
 **What's Next**:
 - 5.1 Concurrency (ThreadPoolExecutor for background tasks)
 - 5.3 Memory Optimization (Profiling)
+
+## 2026-01-29 - Bug Fix: PDF Chapter Extraction
+
+### Inspecting the Issue
+User reported "Whatever -- Michel Houellebecq..." PDF failed to parse/stopped.
+Investigation using `debug_parser.py` showed:
+- Chapters were identified correctly from TOC.
+- **BUT** Chapter content length was 0 for all chapters.
+- This caused the pipeline to bail out ("No text content").
+
+### Root Cause
+The `PDFParser.parse()` method was extracting the full markdown text but **never mapping it to the Chapter objects**. The `_extract_chapters` method initialized `Chapter.content` as empty, and nothing ever populated it. The comment `# Content extracted later` was lying; there was no "later" step handling this.
+
+### Solution
+1. **Switch to Page Chunks**: Updated `PDFParser` to use `pymupdf4llm.to_markdown(..., page_chunks=True)`. This returns a list of dictionaries, one per page.
+2. **Map Pages to Chapters**: Used the TOC's page ranges (`start_page`, `end_page`) to slice the list of page chunks and join their text for each chapter.
+3. **Verification**: Ran `debug_parser.py` on the user's specific PDF. Results:
+   - Part One: 56,551 chars
+   - Part Two: 107,219 chars
+   - (All chapters now have content)
+
+### Testing
+- Updated `tests/test_ingestion.py` to mock `pymupdf4llm` returning a list of page dicts.
+- Verified correct content mapping (Chapter 1 gets Page 1-2, Chapter 2 gets Page 3).
+- All tests passed.
