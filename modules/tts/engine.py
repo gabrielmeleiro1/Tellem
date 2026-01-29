@@ -6,10 +6,13 @@ Optimized for Apple Silicon with 4-bit quantization.
 """
 
 import gc
+import time
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional, Literal
 import numpy as np
+
+from modules.errors import TTSModelError, SynthesisError, VRAMOverflowError
 
 # MLX imports - lazy loaded to avoid import errors if not installed
 try:
@@ -103,7 +106,8 @@ class TTSEngine:
         self,
         text: str,
         voice: Optional[str] = None,
-        speed: float = 1.0
+        speed: float = 1.0,
+        max_retries: int = 3,
     ) -> np.ndarray:
         """
         Synthesize speech from text.
@@ -112,9 +116,15 @@ class TTSEngine:
             text: Text to synthesize
             voice: Voice ID (e.g., 'am_adam', 'af_bella')
             speed: Speech speed multiplier (0.5-2.0)
+            max_retries: Number of retries for model download failures
             
         Returns:
             Audio as numpy array (float32, mono, 24kHz)
+            
+        Raises:
+            TTSModelError: If model fails to load/download
+            SynthesisError: If speech synthesis fails
+            VRAMOverflowError: If not enough VRAM
         """
         import tempfile
         import soundfile as sf
@@ -128,34 +138,79 @@ class TTSEngine:
         # Clamp speed to valid range
         speed = max(0.5, min(2.0, speed))
         
-        try:
-            # Generate audio using mlx-audio to temp directory
-            with tempfile.TemporaryDirectory() as temp_dir:
-                generate_audio(
-                    text=text,
-                    model=self._model_path,
-                    voice=voice,
-                    speed=speed,
-                    output_path=temp_dir,
-                    file_prefix="tts_output",
-                    audio_format="wav",
-                    verbose=False
-                )
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                # Generate audio using mlx-audio to temp directory
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    generate_audio(
+                        text=text,
+                        model=self._model_path,
+                        voice=voice,
+                        speed=speed,
+                        output_path=temp_dir,
+                        file_prefix="tts_output",
+                        audio_format="wav",
+                        verbose=False
+                    )
+                    
+                    # Find the generated file
+                    wav_files = [f for f in os.listdir(temp_dir) if f.endswith('.wav')]
+                    if not wav_files:
+                        raise SynthesisError("No audio file generated")
+                    
+                    # Read the audio file
+                    audio_path = os.path.join(temp_dir, wav_files[0])
+                    audio, sample_rate = sf.read(audio_path, dtype='float32')
+                    
+                    return audio
                 
-                # Find the generated file
-                wav_files = [f for f in os.listdir(temp_dir) if f.endswith('.wav')]
-                if not wav_files:
-                    raise RuntimeError("No audio file generated")
-                
-                # Read the audio file
-                audio_path = os.path.join(temp_dir, wav_files[0])
-                audio, sample_rate = sf.read(audio_path, dtype='float32')
-                
-                return audio
+            except MemoryError as e:
+                raise VRAMOverflowError(model_name=self._model_path)
             
-        except Exception as e:
-            print(f"TTS synthesis error: {e}")
-            raise
+            except (OSError, IOError) as e:
+                error_str = str(e).lower()
+                # Check for network/download related errors
+                if any(k in error_str for k in ['download', 'connection', 'network', 'timeout', 'http', 'repository']):
+                    last_error = e
+                    if attempt < max_retries - 1:
+                        wait_time = (attempt + 1) * 2  # Exponential backoff
+                        print(f"Model download failed, retrying in {wait_time}s... (attempt {attempt + 1}/{max_retries})")
+                        time.sleep(wait_time)
+                        continue
+                    raise TTSModelError(
+                        message=f"Failed to download model after {max_retries} attempts: {str(e)}",
+                        model_name=self._model_path
+                    )
+                raise SynthesisError(message=str(e))
+            
+            except Exception as e:
+                error_str = str(e).lower()
+                # Check for model loading errors
+                if any(k in error_str for k in ['model', 'load', 'weight', 'checkpoint']):
+                    if 'download' in error_str or 'network' in error_str:
+                        last_error = e
+                        if attempt < max_retries - 1:
+                            wait_time = (attempt + 1) * 2
+                            print(f"Model load failed, retrying in {wait_time}s... (attempt {attempt + 1}/{max_retries})")
+                            time.sleep(wait_time)
+                            continue
+                    raise TTSModelError(
+                        message=f"Model loading failed: {str(e)}",
+                        model_name=self._model_path
+                    )
+                # Check for memory errors
+                if 'memory' in error_str or 'vram' in error_str or 'oom' in error_str:
+                    raise VRAMOverflowError(model_name=self._model_path)
+                # Generic synthesis error
+                raise SynthesisError(message=str(e))
+        
+        # Should not reach here, but just in case
+        if last_error:
+            raise TTSModelError(
+                message=f"Failed after {max_retries} attempts: {str(last_error)}",
+                model_name=self._model_path
+            )
     
     def synthesize_to_file(
         self,
