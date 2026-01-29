@@ -62,20 +62,34 @@ class PDFParser:
         Returns:
             Document with extracted content and chapters
         """
-        # Extract markdown using pymupdf4llm
-        self._markdown = pymupdf4llm.to_markdown(str(self.file_path))
-        
-        # Get page count
         import fitz
+        
+        # Extract markdown with page chunks for mapping to chapters
+        pages_data = pymupdf4llm.to_markdown(str(self.file_path), page_chunks=True)
+        
+        # Combine full markdown for the document record
+        self._markdown = "\n\n".join(p["text"] for p in pages_data)
+        
+        # Get metadata
         with fitz.open(self.file_path) as doc:
             total_pages = len(doc)
-            # Try to get metadata
             metadata = doc.metadata
             title = metadata.get("title", "") or self.file_path.stem
             author = metadata.get("author", "")
         
-        # Extract chapters from TOC
-        chapters = self._extract_chapters()
+        # Extract chapters structure from TOC
+        chapters = self._extract_chapters(total_pages)
+        
+        # Populate content for each chapter based on page ranges
+        # page_chunks is 0-indexed list, so page 1 is at index 0
+        for chapter in chapters:
+            # handle potential bounds errors
+            start_idx = max(0, chapter.start_page - 1)
+            end_idx = min(len(pages_data), chapter.end_page)
+            
+            # Join text for pages in this chapter
+            chapter_pages = pages_data[start_idx:end_idx]
+            chapter.content = "\n\n".join(p["text"] for p in chapter_pages)
         
         return Document(
             title=title,
@@ -97,10 +111,13 @@ class PDFParser:
             self._toc = doc.get_toc()
         return self._toc or []
     
-    def _extract_chapters(self) -> list[Chapter]:
+    def _extract_chapters(self, total_pages: int) -> list[Chapter]:
         """
         Extract chapters based on TOC or heading detection.
         
+        Args:
+            total_pages: Total page count to calculate end pages
+            
         Returns:
             List of Chapter objects
         """
@@ -112,26 +129,34 @@ class PDFParser:
             chapters.append(Chapter(
                 number=1,
                 title="Full Document",
-                content=self._markdown or "",
+                content="", # Populated in parse()
                 start_page=1,
-                end_page=self.get_page_count()
+                end_page=total_pages
             ))
             return chapters
         
         # Process TOC entries (level 1 only for main chapters)
         level_1_entries = [(t, p) for lvl, t, p in toc if lvl == 1]
         
+        # If no level 1 entries found, try level 2 or just use all
+        if not level_1_entries and toc:
+             level_1_entries = [(t, p) for lvl, t, p in toc]
+        
         for i, (title, start_page) in enumerate(level_1_entries):
             # Determine end page
             if i + 1 < len(level_1_entries):
                 end_page = level_1_entries[i + 1][1] - 1
             else:
-                end_page = self.get_page_count()
+                end_page = total_pages
+            
+            # Validate page numbers
+            if start_page > end_page:
+                start_page = end_page
             
             chapters.append(Chapter(
                 number=i + 1,
                 title=title,
-                content="",  # Content extracted later during processing
+                content="",  # Populated in parse()
                 start_page=start_page,
                 end_page=end_page
             ))
