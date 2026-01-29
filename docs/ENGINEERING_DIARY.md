@@ -547,3 +547,90 @@ modules/ui/
 *Phase 4 complete. Ready for Phase 5: Optimization & Testing.*
 
 
+
+## 2026-01-29 - Phase 4.5: Pipeline Integration
+
+### Tasks Completed
+
+From `tasks/04.5_PIPELINE_INTEGRATION.md`:
+
+**4.5.1 Pipeline Orchestrator**
+- [x] Create `modules/pipeline/orchestrator.py`
+- [x] Implement `ConversionPipeline` orchestrator logic
+- [x] Add `PipelineStage` enum with CLEANING stage
+- [x] Implement error handling and cancellation checks
+
+**4.5.2 Text Cleaner Integration**
+- [x] Integrate `TextCleaner` into pipeline (Stage 2.5)
+- [x] Add progress reporting for cleaning stage
+
+**4.5.3 Real-time Progress**
+- [x] Update `orchestrator.py` to notify progress callback
+- [x] Implement live UI updates via Streamlit placeholders in `conversion.py`
+- [x] Pass placeholders from `main.py` to `run_conversion`
+
+**4.5.4 ETA Calculation**
+- [x] Implement `estimate_eta()` in orchestrator
+- [x] Pass `eta_seconds` to progress callback
+- [x] Display formatted ETA in UI
+
+**4.5.5 Audio Processing Fixes**
+- [x] Fix `AudioProcessor` usage in orchestrator (load/save vs load_audio/save_audio)
+- [x] Remove duplicate initialization logic
+
+**4.5.7 Export & Library**
+- [x] Integrate `Database` saving on successful conversion
+- [x] Add chapter buttons in UI (download individual MP3s)
+- [x] Allow full M4B download
+
+---
+
+### Challenges & Solutions
+
+#### Challenge 1: Live UI Updates in Streamlit
+
+**Problem**: Progress bars weren't updating in real-time inside the `run_conversion` function because Streamlit often requires a full rerun to update state.
+
+**Solution**: Passed Streamlit `empty()` placeholders (`progress_container`, `status_container`) from `main.py` down to `run_conversion`. The callback then writes directly to these containers using context managers (`with container:`), enabling live updates without full page reruns.
+
+#### Challenge 2: AudioProcessor Usage Confusion
+
+**Problem**: `orchestrator.py` was trying to call `processor.load_audio()` and `processor.save_audio()`, but the actual methods in `modules/audio/processor.py` are named `load()` and `save()`.
+
+**Solution**: Updated `orchestrator.py` to use correct method names. Also fixed a copy-paste error where `AudioProcessor` was initialized twice in the same block.
+
+---
+
+### Architecture Changes
+
+#### Files Modified
+
+```
+modules/pipeline/
+└── orchestrator.py   # NEW: Core logic, ETA, cleaning stage, progress callbacks
+
+modules/ui/
+└── conversion.py     # Modified: Accepts UI placeholders, handles live updates
+
+main.py               # Modified: Creates placeholders, integrates DB saving & downloads
+```
+
+#### Key Design Decisions
+
+1. **Callback-driven UI**: Pipeline is UI-agnostic; it pushes status via a callback. The UI layer (`conversion.py`) translates these to Streamlit widget updates.
+2. **Context Manager Cleaning**: Used `with TextCleaner() as cleaner:` to ensuring VRAM is freed immediately after the cleaning stage, before TTS starts.
+3. **Database-backed Library**: Conversions are automatically saved to SQLite, making the "Library" tab functional.
+
+---
+
+### Current State
+
+**What Works**:
+- Full end-to-end pipeline: Ingest → Chunk → Clean → TTS → Process → Package
+- Live progress bars for Chapters and overall Book
+- Real-time ETA estimation
+- Database storage of results
+- Individual chapter and full book downloads
+
+**What's Next**:
+- Phase 5: Optimization & Testing (Performance profiling, large file tests)
