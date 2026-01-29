@@ -437,10 +437,10 @@ class ConversionPipeline:
             if self.config.normalize_volume:
                 processor = AudioProcessor()
                 normalized = processor.normalize_volume(
-                    processor.load_audio(chapter_wav),
+                    processor.load(chapter_wav),
                     target_dBFS=self.config.target_dbfs,
                 )
-                processor.save_audio(normalized, chapter_wav)
+                processor.save(normalized, chapter_wav)
             
             # Encode to MP3
             safe_title = "".join(
