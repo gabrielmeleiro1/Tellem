@@ -634,3 +634,58 @@ main.py               # Modified: Creates placeholders, integrates DB saving & d
 
 **What's Next**:
 - Phase 5: Optimization & Testing (Performance profiling, large file tests)
+
+## 2026-01-29 - Phase 5: Testing & Optimization (Part 1)
+
+### Tasks Completed
+
+From `tasks/05_OPTIMIZATION.md`:
+
+**5.4 Unit Tests**
+- [x] Create `tests/test_ingestion.py`
+  - PDF/EPUB parser initialization and error handling
+- [x] Create `tests/test_tts.py`
+  - Text chunking (config & method APIs)
+  - Cleaner mocking
+  - TTSEngine mocking (skipping MLX load)
+- [x] Create `tests/test_audio.py`
+  - AudioProcessor (pydub mocks)
+  - AudioEncoder (ffmpeg mocks)
+  - M4BPackager logic
+
+**5.5 Integration Tests**
+- [x] Create `tests/test_pipeline.py`
+  - Orchestrator `convert()` logic
+  - Full flow mocking (Result structure verification)
+  - Cancellation signal testing
+
+---
+
+### Challenges & Solutions
+
+#### Challenge 1: Orchestrator Method Mismatches
+
+**Problem**: Integration tests revealed that `orchestrator.py` was calling incomplete APIs:
+1. Called `chunker.chunk_text()` but `TextChunker` only had `chunk()`.
+2. Passed `max_tokens` argument to `TextChunker` constructor, but it expected `ChunkConfig` object.
+
+**Solution**: Updated `orchestrator.py` to correctly instantiate `ChunkConfig` and use `.chunk()`.
+
+#### Challenge 2: Mocking Local Imports
+
+**Problem**: `orchestrator.py` imports modules inside functions (e.g., `from modules.tts.chunker import ...`) to prevent circular imports. `pytest` patching of `modules.pipeline.orchestrator.TextChunker` failed because the name doesn't exist at module level.
+
+**Solution**: Patched the **source** modules (`modules.tts.chunker.TextChunker`) instead of the alias in orchestrator.
+
+---
+
+### Current State
+
+**What Works**:
+- Comprehensive test suite covering all core modules.
+- `pipeline.conversion` logic verified, including error handling and cancellation.
+- Key modules (Ingest, TTS, Audio) have unit test coverage.
+
+**What's Next**:
+- 5.1 Concurrency (ThreadPoolExecutor for background tasks)
+- 5.3 Memory Optimization (Profiling)
