@@ -23,6 +23,8 @@ from modules.ui.progress import (
     set_current_stage,
     get_progress,
     save_progress_to_session,
+    render_chapter_progress,
+    render_stage_indicator,
 )
 
 
@@ -40,7 +42,8 @@ def map_pipeline_stage(stage: PipelineStage) -> ProcessingStage:
     mapping = {
         PipelineStage.IDLE: ProcessingStage.IDLE,
         PipelineStage.INGESTING: ProcessingStage.PARSING,
-        PipelineStage.CHUNKING: ProcessingStage.CLEANING,
+        PipelineStage.CHUNKING: ProcessingStage.PARSING,
+        PipelineStage.CLEANING: ProcessingStage.CLEANING,
         PipelineStage.SYNTHESIZING: ProcessingStage.SYNTHESIZING,
         PipelineStage.ENCODING: ProcessingStage.ENCODING,
         PipelineStage.PACKAGING: ProcessingStage.PACKAGING,
@@ -115,6 +118,8 @@ def run_conversion(
     filename: str,
     voice: str,
     speed: float,
+    progress_container=None,
+    status_container=None,
 ) -> ConversionResult:
     """
     Run the full conversion pipeline.
@@ -124,6 +129,8 @@ def run_conversion(
         filename: Original filename
         voice: Selected voice ID
         speed: Playback speed
+        progress_container: Streamlit container/placeholder for progress updates
+        status_container: Streamlit container/placeholder for status updates
         
     Returns:
         ConversionResult with output path and status
@@ -139,10 +146,62 @@ def run_conversion(
         temp_dir=Path("temp"),
     )
     
+    # Define callback with access to containers
+    def _on_progress(
+        stage: PipelineStage,
+        chapter_idx: int,
+        total_chapters: int,
+        chunk_idx: int,
+        total_chunks: int,
+        message: str,
+        eta_seconds: Optional[float] = None,
+    ):
+        # Update UI processing stage
+        ui_stage = map_pipeline_stage(stage)
+        set_current_stage(ui_stage)
+        
+        # Update chapter progress
+        if total_chapters > 0:
+            update_chapter_progress(
+                chapter_idx=chapter_idx,
+                completed_chunks=chunk_idx,
+                total_chunks=total_chunks,
+                stage=ui_stage,
+            )
+        
+        # Update ETA and overall progress
+        progress = get_progress()
+        progress.eta_seconds = eta_seconds
+        
+        if total_chapters > 0:
+            # Simple progress calculation
+            chapter_progress = chapter_idx / total_chapters
+            if total_chunks > 0:
+                 chunk_p = chunk_idx / total_chunks
+                 chapter_progress += (chunk_p / total_chapters)
+            
+            st.session_state.progress = min(1.0, chapter_progress)
+        
+        # Log message
+        if message:
+            add_log(message)
+        
+        # LIVE UI UPDATES
+        if progress_container:
+            with progress_container.container():
+                render_chapter_progress()
+        
+        if status_container:
+            with status_container.container():
+                render_stage_indicator()
+        
+        # Save to session for persistence
+        save_progress_to_session()
+
     # Create pipeline with progress callback
     pipeline = ConversionPipeline(
         config=config,
-        progress_callback=progress_callback,
+        progress_callback=_on_progress,
     )
     
     # Run conversion
