@@ -51,10 +51,12 @@ def load_css():
         st.markdown("""
         <style>
             :root {
-                --obsidian: #0A0A0A;
-                --amber: #FFB000;
+                --void: #0A0A0B;
+                --ink: #111113;
+                --rust: #9A3412;
+                --forest: #166534;
             }
-            .stApp { background-color: #0A0A0A; color: #FFB000; }
+            .stApp { background-color: #0A0A0B; color: #E4E4E7; }
         </style>
         """, unsafe_allow_html=True)
 
@@ -92,12 +94,14 @@ def add_log(message: str):
 # ============================================
 # HEADER STRIP
 # ============================================
-header_col1, header_col2 = st.columns([3, 1])
+header_col1, header_col2, header_col3 = st.columns([1, 2, 1])
 with header_col1:
-    st.markdown("# audiobook_creator_v1.0")
+    st.markdown("")
 with header_col2:
+    st.markdown("<h1 style='text-align: center;'>audiobook_creator_v1.0</h1>", unsafe_allow_html=True)
+with header_col3:
     status_text = st.session_state.status.upper()
-    st.markdown(f"**status:** {status_text}")
+    st.markdown(f"<p style='text-align: right; margin-top: 12px;'><strong>status:</strong> {status_text}</p>", unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -244,6 +248,8 @@ with main_col1:
                     filename=uploaded_file.name,
                     voice=st.session_state.selected_voice,
                     speed=st.session_state.selected_speed,
+                    progress_container=progress_placeholder,
+                    status_container=status_placeholder,
                 )
                 st.session_state.conversion_result = result
             
@@ -318,16 +324,21 @@ with main_col2:
     # Progress Section
     st.markdown("### [ progress ]")
     init_progress_state()
+    progress_placeholder = st.empty()
     if st.session_state.current_file:
-        render_chapter_progress()
+        with progress_placeholder.container():
+            render_chapter_progress()
     else:
-        st.markdown("_awaiting file_")
+        with progress_placeholder.container():
+            st.markdown("_awaiting file_")
     
     st.markdown("---")
     
     # Processing Info
     st.markdown("### [ processing ]")
-    render_stage_indicator()
+    status_placeholder = st.empty()
+    with status_placeholder.container():
+        render_stage_indicator()
     
     st.markdown("---")
     
