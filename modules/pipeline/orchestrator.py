@@ -70,6 +70,10 @@ class ConversionResult:
 ProgressCallback = Callable[[PipelineStage, int, int, int, int, str, Optional[float]], None]
 # Args: stage, chapter_idx, total_chapters, chunk_idx, total_chunks, message, eta_seconds
 
+# Type alias for verbose/terminal callback
+VerboseCallback = Callable[[str, str], None]
+# Args: message, log_type (info, process, warning, error, success)
+
 
 class ConversionPipeline:
     """
@@ -87,6 +91,7 @@ class ConversionPipeline:
         self,
         config: Optional[PipelineConfig] = None,
         progress_callback: Optional[ProgressCallback] = None,
+        verbose_callback: Optional[VerboseCallback] = None,
     ):
         """
         Initialize the pipeline.
@@ -94,9 +99,11 @@ class ConversionPipeline:
         Args:
             config: Pipeline configuration
             progress_callback: Called on progress updates
+            verbose_callback: Called on detailed log updates
         """
         self.config = config or PipelineConfig()
         self.progress_callback = progress_callback
+        self.verbose_callback = verbose_callback
         
         self._stage = PipelineStage.IDLE
         self._cancelled = False
@@ -218,6 +225,9 @@ class ConversionPipeline:
             chapters_dir = book_output_dir / "chapters"
             chapters_dir.mkdir(exist_ok=True)
             
+            # Persistence: Save full source markdown
+            self._save_intermediate_source(document, book_output_dir)
+            
             # Stage 2-4: Process each chapter
             chapter_results: list[ChapterResult] = []
             total_chapters = len(document.chapters)
@@ -297,26 +307,44 @@ class ConversionPipeline:
         finally:
             self._cleanup_temp()
     
+    def _log_verbose(self, message: str, log_type: str = "info"):
+        """Emit verbose log if callback present."""
+        if self.verbose_callback:
+            self.verbose_callback(message, log_type)
+
     def _ingest(self, source_path: Path):
         """
         Parse source file and extract document structure.
-        
-        Returns:
-            Parsed Document object
         """
         suffix = source_path.suffix.lower()
+        self._log_verbose(f"Ingesting file: {source_path.name}", "process")
         
+        parser = None
         if suffix == ".epub":
             from modules.ingestion.epub_parser import EPUBParser
             parser = EPUBParser(source_path)
-            return parser.parse()
         elif suffix == ".pdf":
             from modules.ingestion.pdf_parser import PDFParser
             parser = PDFParser(source_path)
-            return parser.parse()
         else:
             raise ValueError(f"Unsupported file type: {suffix}")
-    
+        
+        document = parser.parse()
+        self._log_verbose(f"Doc extracted: {len(document.chapters)} chapters found", "success")
+        
+        return document
+
+    def _save_intermediate_source(self, document, output_dir: Path):
+        """Save full source text for debugging."""
+        try:
+            source_md = output_dir / "source.md"
+            with open(source_md, "w", encoding="utf-8") as f:
+                f.write(f"# {document.title}\n\n")
+                f.write(document.raw_markdown)
+            self._log_verbose(f"Saved source markdown: {source_md.name}", "info")
+        except Exception as e:
+            self._log_verbose(f"Failed to save source.md: {e}", "warning")
+
     def _process_chapter(
         self,
         chapter,
@@ -326,9 +354,6 @@ class ConversionPipeline:
     ) -> ChapterResult:
         """
         Process a single chapter: chunk → synthesize → encode.
-        
-        Returns:
-            ChapterResult with paths and status
         """
         from modules.tts.chunker import TextChunker
         from modules.tts.engine import TTSEngine
@@ -340,6 +365,7 @@ class ConversionPipeline:
             chapter_number=chapter.number,
             chapter_title=chapter.title,
         )
+        self._log_verbose(f"Processing Chapter {chapter.number}: {chapter.title}", "process")
         
         try:
             # Stage 2: Chunk text
@@ -355,9 +381,11 @@ class ConversionPipeline:
             chunker = TextChunker(config=config)
             chunks = chunker.chunk(chapter.content)
             total_chunks = len(chunks)
+            self._log_verbose(f"Split into {total_chunks} chunks", "info")
             
             if total_chunks == 0:
                 result.error = "No text content"
+                self._log_verbose(f"Chapter {chapter.number} empty!", "error")
                 return result
             
             # Stage 2.5: Clean text
@@ -367,7 +395,6 @@ class ConversionPipeline:
             cleaned_chunks = []
             
             # Clean chunks with progress updates
-            # Use context manager to ensure model unloads if used
             with TextCleaner() as cleaner:
                 for chunk_idx, chunk in enumerate(chunks):
                     if self._check_cancelled():
@@ -382,13 +409,28 @@ class ConversionPipeline:
                         message=f"Cleaning chunk {chunk_idx + 1}/{total_chunks}",
                     )
                     
+                    # Show preview in terminal
+                    preview = chunk[:50].replace("\n", " ") + "..."
+                    self._log_verbose(f"Cleaning [{chunk_idx+1}]: {preview}", "info")
+                    
                     cleaned_chunk = cleaner.clean(chunk)
                     cleaned_chunks.append(cleaned_chunk)
             
             chunks = cleaned_chunks
             
+            # Save intermediate cleaned chapter
+            try:
+                clean_md = output_dir / f"chapter_{chapter.number:02d}_cleaned.md"
+                with open(clean_md, "w", encoding="utf-8") as f:
+                    f.write(f"# {chapter.title}\n\n")
+                    f.write("\n\n".join(chunks))
+                self._log_verbose(f"Saved cleaned text: {clean_md.name}", "success")
+            except Exception as e:
+                self._log_verbose(f"Failed to save cleaned md: {e}", "warning")
+            
             # Stage 3: Synthesize each chunk
             self._stage = PipelineStage.SYNTHESIZING
+            self._log_verbose("Loading TTS Model...", "process")
             engine = TTSEngine()
             engine.load_model()
             
@@ -408,6 +450,10 @@ class ConversionPipeline:
                     message=f"Synthesizing chunk {chunk_idx + 1}/{total_chunks}",
                 )
                 
+                # Terminal output for synthesis
+                text_preview = chunk[:40].replace("\n", " ")
+                self._log_verbose(f"Speak [{chunk_idx+1}]: {text_preview}", "info")
+                
                 audio = engine.synthesize(
                     text=chunk,
                     voice=self.config.voice,
@@ -418,6 +464,7 @@ class ConversionPipeline:
                 self._chars_processed += len(chunk)
             
             engine.unload_model()
+            self._log_verbose("TTS Generation complete - Unloaded model", "success")
             
             # Concatenate all chunks
             full_audio = np.concatenate(chunk_audio_segments)
@@ -434,6 +481,7 @@ class ConversionPipeline:
                 total_chapters=total_chapters,
                 message=f"Encoding: {chapter.title}",
             )
+            self._log_verbose("Encoding MP3...", "process")
             
             # Normalize volume
             if self.config.normalize_volume:
@@ -457,6 +505,7 @@ class ConversionPipeline:
             result.mp3_path = chapter_mp3
             result.duration_ms = int(encoder.get_duration(chapter_mp3) * 1000)
             
+            self._log_verbose(f"Encoded: {chapter_mp3.name} ({result.duration_ms/1000:.1f}s)", "success")
             return result
             
         except Exception as e:

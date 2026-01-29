@@ -48,6 +48,7 @@ output/
 *.m4b
 *.m4a
 data/*.db
+*.pdf
 
 # Markdown files (documentation only)
 *.md

@@ -714,3 +714,30 @@ The `PDFParser.parse()` method was extracting the full markdown text but **never
 - Updated `tests/test_ingestion.py` to mock `pymupdf4llm` returning a list of page dicts.
 - Verified correct content mapping (Chapter 1 gets Page 1-2, Chapter 2 gets Page 3).
 - All tests passed.
+
+## 2026-01-29 - Phase 5.2: Observability Features
+
+### Features Implemented
+
+1.  **System Monitor (`modules/ui/monitor.py`)**
+    - Uses `psutil` to track CPU, System RAM, and App Memory usage.
+    - Integrated into the sidebar for "at-a-glance" performance tracking.
+    - **Why:** Apple Silicon is sensitive to RAM pressure; this helps users know when they are nearing limits.
+
+2.  **Matrix Terminal View (`modules/ui/terminal.py`)**
+    - Replaced the simple log window with a sophisticated "Terminal" tab.
+    - Features green-on-black aesthetic, blinking cursor, and real-time streaming logs.
+    - **Verbose Logging**: Shows granular details like "Cleaning chunk 1/5: The quick brown..." which were previously hidden.
+
+3.  **Intermediate Persistence (`orchestrator.py`)**
+    - `source.md`: Full markdown text saved immediately after ingestion.
+    - `chapter_N_cleaned.md`: Cleaned text saved after the `TextCleaner` pass.
+    - **Benefit**: Allows users to inspect exactly what text was extracted and how it was normalized before TTS synthesis.
+
+### Architectural Changes
+- **Callback Expansion**: Modified `ConversionPipeline` to accept a `verbose_callback`.
+- **Orchestrator Logic**: Added explicit save steps in `_ingest` and `_process_chapter`.
+
+### Next Steps
+- Verify performance impact of the new UI rendering loop (Streamlit re-renders can be heavy).
+- Move to **5.1 Concurrency** now that we have better visibility into what's happening.

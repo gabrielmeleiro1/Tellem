@@ -27,6 +27,8 @@ from modules.ui.conversion import (
     add_log as conversion_add_log,
 )
 from modules.storage.database import Database, Book, Chapter
+from modules.ui.monitor import render_system_stats
+from modules.ui.terminal import render_terminal_view, add_terminal_log
 
 # ============================================
 # PAGE CONFIGURATION
@@ -208,11 +210,52 @@ with st.sidebar:
     st.markdown("### [ current settings ]")
     st.markdown(f"voice: `{voice}`")
     st.markdown(f"speed: `{speed}x`")
+    
+    # System Monitor
+    st.markdown("### [ system ]")
+    render_system_stats()
 
 # ============================================
 # MAIN CONTENT AREA
 # ============================================
 main_col1, main_col2 = st.columns([2, 1])
+
+with main_col2:
+    # Progress Section
+    st.markdown("### [ progress ]")
+    init_progress_state()
+    progress_placeholder = st.empty()
+    if st.session_state.current_file:
+        with progress_placeholder.container():
+            render_chapter_progress()
+    else:
+        with progress_placeholder.container():
+            st.markdown("_awaiting file_")
+    
+    st.markdown("---")
+    
+    # Processing Info
+    st.markdown("### [ processing ]")
+    status_placeholder = st.empty()
+    with status_placeholder.container():
+        render_stage_indicator()
+    
+    st.markdown("---")
+    
+    # Model Status
+    st.markdown("### [ model ]")
+    if st.session_state.tts_model_loaded:
+        st.markdown(
+            f"<span style='color: #00FF00;'>●</span> `{st.session_state.tts_model_name}`",
+            unsafe_allow_html=True
+        )
+        st.markdown("status: `loaded`")
+    else:
+        st.markdown(
+            "<span style='color: #555555;'>○</span> `not loaded`",
+            unsafe_allow_html=True
+        )
+        st.markdown("status: `standby`")
 
 with main_col1:
     # File Upload Section
@@ -244,6 +287,10 @@ with main_col1:
             
             # Run the conversion pipeline
             with st.spinner("Converting... this may take a while"):
+                # Define callbacks
+                def on_verbose(msg, type):
+                    add_terminal_log(msg, type)
+                    
                 result = run_conversion(
                     uploaded_file=uploaded_file,
                     filename=uploaded_file.name,
@@ -251,6 +298,7 @@ with main_col1:
                     speed=st.session_state.selected_speed,
                     progress_container=progress_placeholder,
                     status_container=status_placeholder,
+                    verbose_callback=on_verbose # New arg
                 )
                 st.session_state.conversion_result = result
             
@@ -359,54 +407,26 @@ with main_col1:
             st.session_state.status = "exporting"
             add_log("export started...")
 
-with main_col2:
-    # Progress Section
-    st.markdown("### [ progress ]")
-    init_progress_state()
-    progress_placeholder = st.empty()
-    if st.session_state.current_file:
-        with progress_placeholder.container():
-            render_chapter_progress()
-    else:
-        with progress_placeholder.container():
-            st.markdown("_awaiting file_")
-    
-    st.markdown("---")
-    
-    # Processing Info
-    st.markdown("### [ processing ]")
-    status_placeholder = st.empty()
-    with status_placeholder.container():
-        render_stage_indicator()
-    
-    st.markdown("---")
-    
-    # Model Status
-    st.markdown("### [ model ]")
-    if st.session_state.tts_model_loaded:
-        st.markdown(
-            f"<span style='color: #00FF00;'>●</span> `{st.session_state.tts_model_name}`",
-            unsafe_allow_html=True
-        )
-        st.markdown("status: `loaded`")
-    else:
-        st.markdown(
-            "<span style='color: #555555;'>○</span> `not loaded`",
-            unsafe_allow_html=True
-        )
-        st.markdown("status: `standby`")
-
 # ============================================
 # LOG WINDOW (Bottom) - Collapsible
 # ============================================
 st.markdown("---")
-with st.expander("[ log ]", expanded=False):
+tabs = st.tabs(["[ terminal ]", "[ logs ]"])
+
+with tabs[0]:
+    # Live Matrix Terminal
+    terminal_placeholder = st.empty()
+    with terminal_placeholder.container():
+        render_terminal_view()
+
+with tabs[1]:
+    # Classic Log
     if st.session_state.log_messages:
-        for msg in st.session_state.log_messages[-10:]:
+        for msg in st.session_state.log_messages[-20:]:
             st.markdown(f"`> {msg}`")
     else:
         st.markdown("`> system ready`")
-        st.markdown("`> awaiting file upload...`")
+
 
 # ============================================
 # FOOTER

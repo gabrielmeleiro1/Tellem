@@ -120,6 +120,7 @@ def run_conversion(
     speed: float,
     progress_container=None,
     status_container=None,
+    verbose_callback=None,
 ) -> ConversionResult:
     """
     Run the full conversion pipeline.
@@ -131,6 +132,7 @@ def run_conversion(
         speed: Playback speed
         progress_container: Streamlit container/placeholder for progress updates
         status_container: Streamlit container/placeholder for status updates
+        verbose_callback: Callback for detailed logging
         
     Returns:
         ConversionResult with output path and status
@@ -202,6 +204,7 @@ def run_conversion(
     pipeline = ConversionPipeline(
         config=config,
         progress_callback=_on_progress,
+        verbose_callback=verbose_callback,
     )
     
     # Run conversion
