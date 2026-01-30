@@ -115,7 +115,7 @@ a.anchor-link,
 [data-testid="stSidebar"] {
     background-color: var(--ink) !important;
     border-right: 1px solid var(--slate) !important;
-    position: fixed !important;
+    /* Remove fixed positioning - let Streamlit handle layout naturally */
     height: 100vh !important;
     overflow-y: auto !important;
 }
@@ -126,9 +126,23 @@ a.anchor-link,
     overflow-y: auto !important;
 }
 
-/* Ensure sidebar content stays fixed */
-[data-testid="stSidebar"] .block-container {
-    position: relative !important;
+/* Main content area should adjust with sidebar */
+[data-testid="stAppViewContainer"] > div:first-child {
+    display: flex !important;
+    flex-direction: row !important;
+}
+
+/* Ensure main content doesn't get covered */
+section[data-testid="stMain"] {
+    flex: 1 !important;
+    max-width: calc(100% - 300px) !important;
+    transition: max-width 0.3s ease !important;
+}
+
+/* When sidebar is collapsed, main content expands */
+[data-testid="stSidebarCollapsed"] ~ section[data-testid="stMain"],
+[data-testid="stSidebarCollapsed"] + section[data-testid="stMain"] {
+    max-width: 100% !important;
 }
 
 [data-testid="stSidebar"] h3 {
@@ -143,8 +157,8 @@ a.anchor-link,
 }
 
 /* ============================================
-   BUTTONS
-   ============================================ */
+    BUTTONS
+    ============================================ */
 .stButton>button {
     background-color: var(--charcoal) !important;
     color: var(--text-primary) !important;
@@ -156,6 +170,20 @@ a.anchor-link,
     padding: 8px 16px !important;
     transition: all 0.15s ease !important;
     box-shadow: var(--shadow-sm) !important;
+}
+
+/* Ensure button columns stay horizontal */
+[data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+}
+
+/* Ensure columns don't wrap */
+[data-testid="column"] {
+    flex: 1 !important;
+    min-width: 0 !important;
 }
 
 .stButton>button:hover {

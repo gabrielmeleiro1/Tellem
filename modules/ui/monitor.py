@@ -1,78 +1,197 @@
+"""
+System Monitor Module
+====================
+Monitors system performance: CPU, RAM, and process memory usage.
+Integrates with Streamlit for real-time system stats display.
+"""
 
-import psutil
-import streamlit as st
+from __future__ import annotations
+
 import os
+from dataclasses import dataclass
+from typing import Optional
+
+
+@dataclass
+class SystemStats:
+    """Container for system performance metrics."""
+
+    cpu_percent: float
+    ram_used_mb: float
+    ram_total_mb: float
+    ram_percent: float
+    process_memory_mb: Optional[float] = None
+
 
 class SystemMonitor:
-    """Monitors system CPU and Memory usage."""
-    
-    @staticmethod
-    def get_stats():
-        """Get current system statistics."""
-        # CPU Usage (percentage)
-        cpu_percent = psutil.cpu_percent(interval=None)
-        
-        # Memory Usage
-        mem = psutil.virtual_memory()
-        ram_used_gb = mem.used / (1024 ** 3)
-        ram_total_gb = mem.total / (1024 ** 3)
-        ram_percent = mem.percent
-        
-        # Current Process Memory
-        process = psutil.Process(os.getpid())
-        app_mem_mb = process.memory_info().rss / (1024 ** 2)
-        
-        return {
-            "cpu": cpu_percent,
-            "ram_used": ram_used_gb,
-            "ram_total": ram_total_gb,
-            "ram_percent": ram_percent,
-            "app_mem": app_mem_mb
-        }
+    """
+    Monitors system resources using psutil.
+
+    Features:
+        - CPU usage percentage
+        - RAM usage (used/total)
+        - Process-specific memory (RSS)
+    """
+
+    def __init__(self):
+        """Initialize the system monitor."""
+        self._has_psutil = False
+        try:
+            import psutil
+
+            self._has_psutil = True
+            self._psutil = psutil
+            self._process = psutil.Process(os.getpid())
+        except ImportError:
+            self._psutil = None
+            self._process = None
+
+    def is_available(self) -> bool:
+        """Check if system monitoring is available (psutil installed)."""
+        return self._has_psutil
+
+    def get_stats(self) -> SystemStats:
+        """
+        Get current system statistics.
+
+        Returns:
+            SystemStats with current metrics
+        """
+        if not self._has_psutil or not self._psutil:
+            # Return zero stats if psutil not available
+            return SystemStats(
+                cpu_percent=0.0,
+                ram_used_mb=0.0,
+                ram_total_mb=0.0,
+                ram_percent=0.0,
+                process_memory_mb=None,
+            )
+
+        try:
+            # CPU usage (interval=0 means non-blocking)
+            cpu_percent = self._psutil.cpu_percent(interval=0.1)
+
+            # RAM usage
+            mem = self._psutil.virtual_memory()
+            ram_used_mb = mem.used / 1024 / 1024
+            ram_total_mb = mem.total / 1024 / 1024
+            ram_percent = mem.percent
+
+            # Process memory (RSS - Resident Set Size)
+            process_memory_mb = None
+            if self._process:
+                proc_mem = self._process.memory_info()
+                process_memory_mb = proc_mem.rss / 1024 / 1024
+
+            return SystemStats(
+                cpu_percent=cpu_percent,
+                ram_used_mb=ram_used_mb,
+                ram_total_mb=ram_total_mb,
+                ram_percent=ram_percent,
+                process_memory_mb=process_memory_mb,
+            )
+        except Exception:
+            # Return zero stats on any error
+            return SystemStats(
+                cpu_percent=0.0,
+                ram_used_mb=0.0,
+                ram_total_mb=0.0,
+                ram_percent=0.0,
+                process_memory_mb=None,
+            )
+
 
 def render_system_stats():
-    """Render system stats in a compact container (sidebar/header)."""
-    stats = SystemMonitor.get_stats()
-    
-    # CSS for compact stats - Retro Style
-    st.markdown("""
-        <style>
-        .monitor-container {
-            font-family: 'JetBrains Mono', 'Courier New', monospace;
-            font-size: 11px;
-            color: #888;
-            border-top: 1px solid #333;
-            margin-top: 20px;
-            padding-top: 10px;
-        }
-        .stat-row {
-            display: flex;
-            justify_content: space-between;
-            margin-bottom: 4px;
-        }
-        .stat-label { color: #555; }
-        .stat-value { color: #FFB000; }
-        .stat-value.high { color: #FF4444; }
-        </style>
-    """, unsafe_allow_html=True)
-    
-    # Color coding for high usage
-    cpu_cls = "high" if stats["cpu"] > 80 else ""
-    ram_cls = "high" if stats["ram_percent"] > 90 else ""
-    
-    st.markdown(f"""
-        <div class="monitor-container">
-            <div class="stat-row">
-                <span class="stat-label">CPU:</span>
-                <span class="stat-value {cpu_cls}">{stats['cpu']:.1f}%</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">SYS RAM:</span>
-                <span class="stat-value {ram_cls}">{stats['ram_used']:.1f}/{stats['ram_total']:.0f} GB ({stats['ram_percent']}%)</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">APP MEM:</span>
-                <span class="stat-value">{stats['app_mem']:.0f} MB</span>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+    """
+    Render system stats as compact badges/metrics in Streamlit.
+    Call this from your Streamlit app to display system monitor.
+    """
+    import streamlit as st
+
+    monitor = SystemMonitor()
+
+    if not monitor.is_available():
+        st.markdown(
+            "<small>`psutil` not installed - system monitoring unavailable</small>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    stats = monitor.get_stats()
+
+    # Create compact metric display
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        # CPU with color indicator
+        cpu_color = (
+            "#00FF00"
+            if stats.cpu_percent < 50
+            else "#FFA500"
+            if stats.cpu_percent < 80
+            else "#FF3333"
+        )
+        st.markdown(
+            f"<div style='text-align: center;'>"
+            f"<span style='font-size: 10px; color: #666;'>CPU</span><br>"
+            f"<span style='font-size: 14px; font-weight: bold; color: {cpu_color};'>{stats.cpu_percent:.1f}%</span>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+    with col2:
+        # RAM usage
+        ram_gb = stats.ram_used_mb / 1024
+        ram_total_gb = stats.ram_total_mb / 1024
+        ram_color = (
+            "#00FF00"
+            if stats.ram_percent < 50
+            else "#FFA500"
+            if stats.ram_percent < 80
+            else "#FF3333"
+        )
+        st.markdown(
+            f"<div style='text-align: center;'>"
+            f"<span style='font-size: 10px; color: #666;'>RAM</span><br>"
+            f"<span style='font-size: 14px; font-weight: bold; color: {ram_color};'>{ram_gb:.1f}/{ram_total_gb:.1f}GB</span>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+    with col3:
+        # Process memory
+        if stats.process_memory_mb:
+            proc_gb = stats.process_memory_mb / 1024
+            st.markdown(
+                f"<div style='text-align: center;'>"
+                f"<span style='font-size: 10px; color: #666;'>PROCESS</span><br>"
+                f"<span style='font-size: 14px; font-weight: bold; color: #00CCFF;'>{proc_gb:.2f}GB</span>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                f"<div style='text-align: center;'>"
+                f"<span style='font-size: 10px; color: #666;'>PROCESS</span><br>"
+                f"<span style='font-size: 14px; color: #666;'>--</span>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
+
+def get_system_stats_dict() -> dict:
+    """
+    Get system stats as a dictionary for programmatic use.
+
+    Returns:
+        Dictionary with cpu_percent, ram_used_mb, ram_total_mb, ram_percent, process_memory_mb
+    """
+    monitor = SystemMonitor()
+    stats = monitor.get_stats()
+    return {
+        "cpu_percent": stats.cpu_percent,
+        "ram_used_mb": stats.ram_used_mb,
+        "ram_total_mb": stats.ram_total_mb,
+        "ram_percent": stats.ram_percent,
+        "process_memory_mb": stats.process_memory_mb,
+    }

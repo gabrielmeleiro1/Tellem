@@ -8,15 +8,20 @@ import streamlit as st
 from dataclasses import dataclass, field
 from typing import Optional
 from enum import Enum
+from pathlib import Path
 
 
 class ProcessingStage(Enum):
     """Processing stages for status display."""
     IDLE = "idle"
     LOADING_MODEL = "loading_model"
+    LOADING_TTS_MODEL = "loading_tts_model"
+    LOADING_CLEANER_MODEL = "loading_cleaner_model"
     PARSING = "parsing"
+    PARSED = "parsed"  # Text extracted, waiting for TTS
     CLEANING = "cleaning"
     SYNTHESIZING = "synthesizing"
+    TTS_COMPLETE = "tts_complete"  # Audio generated for this chapter
     ENCODING = "encoding"
     PACKAGING = "packaging"
     COMPLETE = "complete"
@@ -33,6 +38,9 @@ class ChapterProgress:
     completed_chunks: int = 0
     stage: ProcessingStage = ProcessingStage.IDLE
     error: Optional[str] = None
+    mp3_path: Optional[str] = None  # Path to generated audio file
+    is_parsed: bool = False  # Text extraction complete
+    is_tts_complete: bool = False  # Audio generation complete
     
     @property
     def progress(self) -> float:
@@ -44,12 +52,17 @@ class ChapterProgress:
     @property
     def is_complete(self) -> bool:
         """Returns True if chapter processing is complete."""
-        return self.stage == ProcessingStage.COMPLETE
+        return self.stage == ProcessingStage.COMPLETE or self.is_tts_complete
     
     @property
     def has_error(self) -> bool:
         """Returns True if chapter had an error."""
         return self.stage == ProcessingStage.ERROR
+    
+    @property
+    def can_play(self) -> bool:
+        """Returns True if chapter has audio available for playback."""
+        return self.mp3_path is not None and Path(self.mp3_path).exists()
 
 
 @dataclass
@@ -236,7 +249,7 @@ def clear_progress_backup():
 
 
 def render_chapter_progress():
-    """Render per-chapter progress bars in the UI."""
+    """Render per-chapter progress bars in the UI with parsed/TTS status."""
     progress = get_progress()
     
     if not progress.chapters:
@@ -249,32 +262,63 @@ def render_chapter_progress():
     
     st.markdown("")
     
+    # Legend
+    st.markdown(
+        "<small><span style='color: #555555;'>○</span>=waiting "
+        "<span style='color: #00BFFF;'>P</span>=parsed "
+        "<span style='color: #FFB000;'>▶</span>=processing "
+        "<span style='color: #00FF00;'>✓</span>=complete "
+        "<span style='color: #FF4500;'>✖</span>=error</small>",
+        unsafe_allow_html=True
+    )
+    st.markdown("")
+    
     # Per-chapter progress
     for ch in progress.chapters:
-        # Status indicator
-        if ch.has_error:
-            indicator = '<span style="color: #FF4500;">✖</span>'
-        elif ch.is_complete:
-            indicator = '<span style="color: #00FF00;">✓</span>'
-        elif ch.index == progress.current_chapter_idx:
-            indicator = '<span style="color: #FFB000;">▶</span>'
-        else:
-            indicator = '<span style="color: #555555;">○</span>'
+        col1, col2 = st.columns([0.85, 0.15])
         
-        # Chapter name (truncate if too long)
-        name = ch.name[:30] + "..." if len(ch.name) > 30 else ch.name
+        with col1:
+            # Status indicator with parsed/TTS info
+            if ch.has_error:
+                indicator = '<span style="color: #FF4500;">✖</span>'
+                status_text = "error"
+            elif ch.is_tts_complete or ch.is_complete:
+                indicator = '<span style="color: #00FF00;">✓</span>'
+                status_text = "ready"
+            elif ch.index == progress.current_chapter_idx:
+                indicator = '<span style="color: #FFB000;">▶</span>'
+                status_text = "processing"
+            elif ch.is_parsed:
+                indicator = '<span style="color: #00BFFF;">P</span>'
+                status_text = "parsed"
+            else:
+                indicator = '<span style="color: #555555;">○</span>'
+                status_text = "waiting"
+            
+            # Chapter name (truncate if too long)
+            name = ch.name[:28] + "..." if len(ch.name) > 28 else ch.name
+            
+            # Progress bar visualization (ASCII style to match retro theme)
+            bar_width = 15
+            filled = int(ch.progress * bar_width)
+            bar = "█" * filled + "░" * (bar_width - filled)
+            percent = int(ch.progress * 100)
+            
+            st.markdown(
+                f"{indicator} `{ch.index + 1:02d}` {name} "
+                f"<span style='color: #666; font-size: 10px;'>({status_text})</span><br>"
+                f'<span style="font-family: monospace; color: #FFB000;">[{bar}]</span> `{percent}%`',
+                unsafe_allow_html=True
+            )
         
-        # Progress bar visualization (ASCII style to match retro theme)
-        bar_width = 20
-        filled = int(ch.progress * bar_width)
-        bar = "█" * filled + "░" * (bar_width - filled)
-        percent = int(ch.progress * 100)
-        
-        st.markdown(
-            f"{indicator} `{ch.index + 1:02d}` {name}<br>"
-            f'<span style="font-family: monospace; color: #FFB000;">[{bar}]</span> `{percent}%`',
-            unsafe_allow_html=True
-        )
+        with col2:
+            # Audio player for completed chapters
+            if ch.can_play:
+                try:
+                    with open(ch.mp3_path, "rb") as f:
+                        st.audio(f.read(), format="audio/mp3", start_time=0)
+                except Exception:
+                    pass
 
 
 def render_stage_indicator():
@@ -284,9 +328,13 @@ def render_stage_indicator():
     stage_labels = {
         ProcessingStage.IDLE: ("○", "#555555", "idle"),
         ProcessingStage.LOADING_MODEL: ("◐", "#FFB000", "loading model"),
+        ProcessingStage.LOADING_TTS_MODEL: ("◐", "#00BFFF", "loading TTS model"),
+        ProcessingStage.LOADING_CLEANER_MODEL: ("◐", "#00BFFF", "loading cleaner model"),
         ProcessingStage.PARSING: ("◐", "#FFB000", "parsing"),
+        ProcessingStage.PARSED: ("●", "#00BFFF", "parsed (waiting TTS)"),
         ProcessingStage.CLEANING: ("◐", "#FFB000", "cleaning text"),
         ProcessingStage.SYNTHESIZING: ("◐", "#FFB000", "synthesizing"),
+        ProcessingStage.TTS_COMPLETE: ("●", "#00FF00", "TTS complete"),
         ProcessingStage.ENCODING: ("◐", "#FFB000", "encoding"),
         ProcessingStage.PACKAGING: ("◐", "#FFB000", "packaging"),
         ProcessingStage.COMPLETE: ("●", "#00FF00", "complete"),
