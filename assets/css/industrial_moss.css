@@ -1,0 +1,609 @@
+/* ============================================
+   INDUSTRIAL MOSS THEME
+   Low-emission, brutalist, instrument-like UI
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root {
+    /* Core Background Colors */
+    --bg-core: #1a1b1a;
+    --bg-surface: #282828;
+    --bg-elevated: #32302f;
+    
+    /* Border Colors */
+    --border-color: #3c3836;
+    --border-focus: #504945;
+    --border-accent: #665c54;
+    
+    /* Text Colors */
+    --text-main: #d5c4a1;
+    --text-dim: #a89984;
+    --text-faded: #7c6f64;
+    
+    /* Accent Colors */
+    --accent-olive: #859900;
+    --accent-rust: #af3a03;
+    --accent-gold: #b57614;
+    
+    /* Status Colors */
+    --status-active: #98971a;
+    --status-success: #79740e;
+    --status-error: #9d0006;
+    --status-info: #458588;
+    
+    /* Typography */
+    --font-mono: 'JetBrains Mono', 'IBM Plex Mono', 'Iosevka', 'Courier New', monospace;
+    
+    /* Font Sizes */
+    --text-xs: 10px;
+    --text-sm: 12px;
+    --text-base: 14px;
+    --text-lg: 16px;
+    --text-xl: 18px;
+    --text-2xl: 22px;
+    
+    /* Font Weights */
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-bold: 700;
+    
+    /* Geometry */
+    --radius: 0px;
+    --border-thin: 1px;
+    --border-thick: 2px;
+    
+    /* Spacing */
+    --space-xs: 2px;
+    --space-sm: 4px;
+    --space-md: 8px;
+    --space-lg: 12px;
+    --space-xl: 16px;
+    --grid-gap: 1px;
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+.stApp {
+    background-color: var(--bg-core) !important;
+    color: var(--text-main) !important;
+    font-family: var(--font-mono) !important;
+}
+
+/* ============================================
+   PANELS & CONTAINERS
+   ============================================ */
+
+.moss-panel {
+    background-color: var(--bg-surface);
+    border: var(--border-thin) solid var(--border-color);
+    padding: var(--space-md);
+}
+
+.moss-panel-title {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--font-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-main);
+    border-bottom: var(--border-thin) solid var(--border-color);
+    padding-bottom: var(--space-sm);
+    margin-bottom: var(--space-md);
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+
+.moss-button {
+    background-color: var(--bg-core);
+    color: var(--text-main);
+    border: var(--border-thin) solid var(--border-color);
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    text-transform: uppercase;
+    padding: var(--space-sm) var(--space-md);
+    cursor: pointer;
+    transition: all 0.1s ease;
+}
+
+.moss-button:hover {
+    background-color: var(--bg-elevated);
+    border-color: var(--accent-olive);
+}
+
+.moss-button-primary {
+    background-color: var(--accent-olive);
+    color: var(--bg-core);
+    border-color: var(--accent-olive);
+}
+
+.moss-button-primary:hover {
+    background-color: var(--status-active);
+    border-color: var(--status-active);
+}
+
+/* ============================================
+   FORM ELEMENTS
+   ============================================ */
+
+.moss-input {
+    background-color: var(--bg-core);
+    color: var(--text-main);
+    border: var(--border-thin) solid var(--border-color);
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: var(--text-base);
+    padding: var(--space-sm);
+}
+
+.moss-input:focus {
+    outline: none;
+    border-color: var(--accent-olive);
+}
+
+.moss-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--text-dim);
+    text-transform: lowercase;
+}
+
+.moss-label::after {
+    content: ":";
+}
+
+/* ============================================
+   STATUS INDICATORS
+   ============================================ */
+
+.moss-status {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+}
+
+.moss-status-idle::before {
+    content: "[ ○ ] ";
+    color: var(--text-faded);
+}
+
+.moss-status-active::before {
+    content: "[ ◐ ] ";
+    color: var(--accent-olive);
+}
+
+.moss-status-complete::before {
+    content: "[ ● ] ";
+    color: var(--accent-olive);
+}
+
+.moss-status-error::before {
+    content: "[ ✕ ] ";
+    color: var(--accent-rust);
+}
+
+/* ============================================
+   METRICS
+   ============================================ */
+
+.moss-metric {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    display: flex;
+    gap: var(--space-sm);
+    align-items: baseline;
+}
+
+.moss-metric-label {
+    color: var(--text-dim);
+    text-transform: lowercase;
+}
+
+.moss-metric-label::after {
+    content: ":";
+}
+
+.moss-metric-value {
+    color: var(--text-main);
+}
+
+.moss-metric-unit {
+    color: var(--text-faded);
+}
+
+.moss-metric-value-active {
+    color: var(--status-active);
+}
+
+.moss-metric-value-success {
+    color: var(--status-success);
+}
+
+.moss-metric-value-error {
+    color: var(--status-error);
+}
+
+/* ============================================
+   PROGRESS BARS
+   ============================================ */
+
+.moss-progress {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--text-dim);
+}
+
+.moss-progress-bar {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    letter-spacing: 0;
+    white-space: pre;
+}
+
+/* ============================================
+   TERMINAL
+   ============================================ */
+
+.moss-terminal {
+    background-color: var(--bg-core);
+    border: var(--border-thin) solid var(--border-color);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-main);
+    padding: var(--space-sm);
+    overflow-y: auto;
+}
+
+.moss-terminal-entry {
+    margin-bottom: var(--space-xs);
+    line-height: 1.4;
+}
+
+.moss-terminal-timestamp {
+    color: var(--text-faded);
+}
+
+.moss-terminal-debug {
+    color: var(--text-faded);
+}
+
+.moss-terminal-info {
+    color: var(--text-dim);
+}
+
+.moss-terminal-process {
+    color: var(--accent-olive);
+}
+
+.moss-terminal-warning {
+    color: var(--accent-gold);
+}
+
+.moss-terminal-error {
+    color: var(--accent-rust);
+}
+
+.moss-terminal-cursor {
+    display: inline-block;
+    width: 6px;
+    height: 12px;
+    background-color: var(--text-main);
+    animation: blink 1s step-end infinite;
+    vertical-align: middle;
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
+/* ============================================
+   WAVEFORM
+   ============================================ */
+
+.moss-waveform {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--accent-olive);
+    letter-spacing: 0;
+    white-space: pre;
+    line-height: 1;
+}
+
+/* ============================================
+   STREAMLIT OVERRIDES
+   ============================================ */
+
+/* Main container */
+[data-testid="stAppViewContainer"] {
+    background-color: var(--bg-core) !important;
+}
+
+/* Buttons */
+.stButton>button {
+    background-color: var(--bg-core) !important;
+    color: var(--text-main) !important;
+    border: var(--border-thin) solid var(--border-color) !important;
+    border-radius: var(--radius) !important;
+    font-family: var(--font-mono) !important;
+    font-size: var(--text-sm) !important;
+    text-transform: uppercase !important;
+    padding: var(--space-sm) var(--space-md) !important;
+}
+
+.stButton>button:hover {
+    border-color: var(--accent-olive) !important;
+    background-color: var(--bg-elevated) !important;
+}
+
+.stButton>button[kind="primary"] {
+    background-color: var(--accent-olive) !important;
+    color: var(--bg-core) !important;
+    border-color: var(--accent-olive) !important;
+}
+
+.stButton>button[kind="primary"]:hover {
+    background-color: var(--status-active) !important;
+    border-color: var(--status-active) !important;
+}
+
+/* Select boxes */
+[data-testid="stSelectbox"]>div>div {
+    background-color: var(--bg-core) !important;
+    border: var(--border-thin) solid var(--border-color) !important;
+    border-radius: var(--radius) !important;
+    color: var(--text-main) !important;
+    font-family: var(--font-mono) !important;
+}
+
+[data-testid="stSelectbox"]:focus-within>div>div {
+    border-color: var(--accent-olive) !important;
+}
+
+/* File uploader */
+[data-testid="stFileUploader"] {
+    background-color: var(--bg-surface) !important;
+    border: var(--border-thin) dashed var(--border-color) !important;
+    border-radius: var(--radius) !important;
+}
+
+[data-testid="stFileUploader"]:hover {
+    border-color: var(--accent-olive) !important;
+}
+
+/* Progress bars */
+.stProgress>div>div {
+    background-color: var(--bg-surface) !important;
+    border-radius: var(--radius) !important;
+    border: var(--border-thin) solid var(--border-color) !important;
+    height: 12px !important;
+}
+
+.stProgress>div>div>div {
+    background-color: var(--accent-olive) !important;
+    border-radius: var(--radius) !important;
+}
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+    background-color: var(--bg-surface) !important;
+    border-right: var(--border-thin) solid var(--border-color) !important;
+}
+
+[data-testid="stSidebar"] .stMarkdown {
+    font-family: var(--font-mono) !important;
+}
+
+/* Tabs */
+[data-testid="stTabs"] button {
+    border-radius: var(--radius) !important;
+    text-transform: uppercase !important;
+    font-family: var(--font-mono) !important;
+    font-size: var(--text-sm) !important;
+    background-color: transparent !important;
+    border: var(--border-thin) solid transparent !important;
+    border-bottom: var(--border-thin) solid var(--border-color) !important;
+}
+
+[data-testid="stTabs"] button[aria-selected="true"] {
+    background-color: var(--bg-elevated) !important;
+    border: var(--border-thin) solid var(--border-color) !important;
+    border-bottom: none !important;
+    color: var(--accent-olive) !important;
+}
+
+/* Headers */
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-mono) !important;
+    text-transform: uppercase !important;
+    color: var(--text-main) !important;
+    letter-spacing: 0.02em !important;
+}
+
+h1 {
+    font-size: var(--text-2xl) !important;
+    border-bottom: var(--border-thin) solid var(--border-color) !important;
+    padding-bottom: var(--space-md) !important;
+}
+
+h2 {
+    font-size: var(--text-xl) !important;
+}
+
+h3 {
+    font-size: var(--text-lg) !important;
+}
+
+/* Text input */
+[data-testid="stTextInput"]>div>div>input {
+    background-color: var(--bg-core) !important;
+    border: var(--border-thin) solid var(--border-color) !important;
+    border-radius: var(--radius) !important;
+    color: var(--text-main) !important;
+    font-family: var(--font-mono) !important;
+}
+
+[data-testid="stTextInput"]>div>div>input:focus {
+    border-color: var(--accent-olive) !important;
+    outline: none !important;
+}
+
+/* Slider */
+[data-testid="stSlider"] [role="slider"] {
+    border-radius: var(--radius) !important;
+}
+
+[data-testid="stSlider"]>div>div {
+    background-color: var(--bg-core) !important;
+}
+
+[data-testid="stSlider"]>div>div>div {
+    background-color: var(--accent-olive) !important;
+}
+
+/* Expander */
+[data-testid="stExpander"] {
+    border: var(--border-thin) solid var(--border-color) !important;
+    border-radius: var(--radius) !important;
+    background-color: var(--bg-surface) !important;
+}
+
+/* Checkbox */
+[data-testid="stCheckbox"] label {
+    font-family: var(--font-mono) !important;
+    font-size: var(--text-sm) !important;
+}
+
+/* Radio buttons */
+[data-testid="stRadio"] label {
+    font-family: var(--font-mono) !important;
+    font-size: var(--text-sm) !important;
+}
+
+/* Text area */
+[data-testid="stTextArea"]>div>div>textarea {
+    background-color: var(--bg-core) !important;
+    border: var(--border-thin) solid var(--border-color) !important;
+    border-radius: var(--radius) !important;
+    color: var(--text-main) !important;
+    font-family: var(--font-mono) !important;
+}
+
+/* Code blocks */
+st.code {
+    font-family: var(--font-mono) !important;
+    background-color: var(--bg-core) !important;
+}
+
+/* Dataframe */
+[data-testid="stDataFrame"] {
+    font-family: var(--font-mono) !important;
+    font-size: var(--text-xs) !important;
+}
+
+/* Tooltips */
+[data-testid="stTooltip"] {
+    font-family: var(--font-mono) !important;
+    font-size: var(--text-xs) !important;
+}
+
+/* Alert/Notification boxes */
+[data-testid="stAlert"] {
+    border-radius: var(--radius) !important;
+    font-family: var(--font-mono) !important;
+    font-size: var(--text-sm) !important;
+}
+
+/* Info alert */
+[data-testid="stAlert"][data-baseweb="notification"][data-kind="info"] {
+    background-color: var(--bg-surface) !important;
+    border: var(--border-thin) solid var(--status-info) !important;
+    color: var(--text-main) !important;
+}
+
+/* Success alert */
+[data-testid="stAlert"][data-baseweb="notification"][data-kind="success"] {
+    background-color: var(--bg-surface) !important;
+    border: var(--border-thin) solid var(--status-success) !important;
+    color: var(--text-main) !important;
+}
+
+/* Warning alert */
+[data-testid="stAlert"][data-baseweb="notification"][data-kind="warning"] {
+    background-color: var(--bg-surface) !important;
+    border: var(--border-thin) solid var(--accent-gold) !important;
+    color: var(--text-main) !important;
+}
+
+/* Error alert */
+[data-testid="stAlert"][data-baseweb="notification"][data-kind="error"] {
+    background-color: var(--bg-surface) !important;
+    border: var(--border-thin) solid var(--status-error) !important;
+    color: var(--text-main) !important;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-core);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: var(--radius);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--border-focus);
+}
+
+/* Links */
+a {
+    color: var(--accent-olive) !important;
+    text-decoration: none !important;
+}
+
+a:hover {
+    color: var(--status-active) !important;
+    text-decoration: underline !important;
+}
+
+/* Divider */
+hr {
+    border: none !important;
+    border-top: var(--border-thin) solid var(--border-color) !important;
+    margin: var(--space-md) 0 !important;
+}
+
+/* Spacing helpers */
+.moss-gap-xs { gap: var(--space-xs); }
+.moss-gap-sm { gap: var(--space-sm); }
+.moss-gap-md { gap: var(--space-md); }
+.moss-gap-lg { gap: var(--space-lg); }
+
+.moss-p-xs { padding: var(--space-xs); }
+.moss-p-sm { padding: var(--space-sm); }
+.moss-p-md { padding: var(--space-md); }
+.moss-p-lg { padding: var(--space-lg); }
+.moss-p-xl { padding: var(--space-xl); }
+
+.moss-m-xs { margin: var(--space-xs); }
+.moss-m-sm { margin: var(--space-sm); }
+.moss-m-md { margin: var(--space-md); }
+.moss-m-lg { margin: var(--space-lg); }
+.moss-m-xl { margin: var(--space-xl); }
+
+/* Text utilities */
+.moss-text-upper { text-transform: uppercase; }
+.moss-text-lower { text-transform: lowercase; }
+.moss-text-muted { color: var(--text-dim); }
+.moss-text-faded { color: var(--text-faded); }
+.moss-text-accent { color: var(--accent-olive); }
+.moss-text-error { color: var(--accent-rust); }
