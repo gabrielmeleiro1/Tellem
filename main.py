@@ -112,9 +112,85 @@ if "thread_error" not in st.session_state:
 if "thread_running" not in st.session_state:
     st.session_state.thread_running = False
 
+# Pipeline instance for cancellation access
+if "active_pipeline" not in st.session_state:
+    st.session_state.active_pipeline = None
+
 # View state for navigation
 if "view" not in st.session_state:
     st.session_state.view = "upload"  # upload, library, checklist
+
+
+# ============================================
+# BACKGROUND CONVERSION MONITOR
+# ==========================================
+def check_conversion_status():
+    """
+    Check and update conversion status from background thread.
+    Call this at the start of each script run to update UI state.
+    """
+    if not st.session_state.get("thread_running"):
+        return
+    
+    # Thread is still running - check if we need to update anything
+    # The thread will set thread_running = False when complete
+    
+    # If thread has finished (thread_running was set to False by the thread)
+    if st.session_state.conversion_thread and not st.session_state.conversion_thread.is_alive():
+        # Thread has completed
+        st.session_state.thread_running = False
+        st.session_state.active_pipeline = None
+        st.session_state.active_model = None
+        
+        # Check for errors
+        if st.session_state.thread_error:
+            st.session_state.status = "error"
+            add_log(f"conversion failed: {st.session_state.thread_error}")
+            from modules.ui.terminal import add_terminal_log
+            add_terminal_log(f"Conversion failed: {st.session_state.thread_error}", "error")
+        else:
+            # Get result
+            result = st.session_state.get("conversion_result")
+            if result and result.success:
+                st.session_state.status = "complete"
+                add_log(f"conversion complete: {result.output_path}")
+                from modules.ui.terminal import add_terminal_log
+                add_terminal_log("Conversion complete!", "success")
+                
+                # Save to Library Database
+                try:
+                    from modules.storage.database import Database
+                    db = Database()
+                    book_id = db.create_book(
+                        title=result.title,
+                        author=result.author,
+                        source_path=st.session_state.current_file,
+                        source_type=Path(st.session_state.current_file).suffix.lstrip(".").lower(),
+                        total_chapters=len(result.chapters),
+                    )
+                    for ch in result.chapters:
+                        db.create_chapter(
+                            book_id=book_id,
+                            chapter_number=ch.chapter_number,
+                            title=ch.chapter_title,
+                            duration_ms=ch.duration_ms,
+                            mp3_path=str(ch.mp3_path) if ch.mp3_path else None,
+                        )
+                    add_log("added to library")
+                except Exception as e:
+                    add_log(f"database error: {e}")
+            elif result and result.error == "Cancelled":
+                st.session_state.status = "cancelled"
+                add_log("conversion cancelled")
+            else:
+                st.session_state.status = "error"
+                error_msg = result.error if result else "unknown error"
+                add_log(f"conversion failed: {error_msg}")
+                from modules.ui.terminal import add_terminal_log
+                add_terminal_log(f"Conversion failed: {error_msg}", "error")
+        
+        # Clean up thread state
+        st.session_state.conversion_thread = None
 
 
 def add_log(message: str):
@@ -140,6 +216,142 @@ def run_conversion_in_thread(pipeline, source_path):
     except Exception as e:
         st.session_state.thread_error = str(e)
         st.session_state.thread_running = False
+
+
+def start_conversion(uploaded_file, voice: str, speed: float):
+    """
+    Start a background conversion.
+    """
+    from modules.pipeline.orchestrator import (
+        ConversionPipeline,
+        PipelineConfig,
+    )
+    from modules.ui.progress import (
+        set_chapters,
+        update_chapter_progress,
+        set_current_stage,
+        ProcessingStage,
+    )
+    from modules.ui.terminal import add_terminal_log
+    from modules.ui.conversion import save_uploaded_file
+    
+    st.session_state.status = "processing"
+    st.session_state.processing_stage = "ingesting"
+    st.session_state.conversion_cancelled = False
+    st.session_state.thread_error = None
+    st.session_state.conversion_result = None
+    
+    add_log("starting conversion...")
+    add_log(f"voice: {voice}, speed: {speed}x")
+    add_terminal_log(f"Starting conversion with voice: {voice}", "process")
+    
+    # Define verbose callback
+    def on_verbose(msg, msg_type):
+        add_terminal_log(msg, msg_type)
+        
+        # Update active model based on log messages
+        if "text cleaner" in msg.lower() or "cleaner" in msg.lower():
+            st.session_state.active_model = "cleaner"
+            st.session_state.cleaner_model_loaded = True
+        elif "tts" in msg.lower() and "model" in msg.lower():
+            st.session_state.active_model = "tts"
+            st.session_state.tts_model_loaded = True
+        elif "unloaded" in msg.lower():
+            if "cleaner" in msg.lower():
+                st.session_state.cleaner_model_loaded = False
+            elif "tts" in msg.lower():
+                st.session_state.tts_model_loaded = False
+    
+    # Progress callback
+    def on_progress(stage, chapter_idx, total_chapters, chunk_idx, total_chunks, message, eta):
+        stage_map = {
+            "ingesting": ProcessingStage.PARSING,
+            "chunking": ProcessingStage.PARSING,
+            "cleaning": ProcessingStage.CLEANING,
+            "synthesizing": ProcessingStage.SYNTHESIZING,
+            "encoding": ProcessingStage.ENCODING,
+            "packaging": ProcessingStage.PACKAGING,
+            "complete": ProcessingStage.COMPLETE,
+            "error": ProcessingStage.ERROR,
+            "cancelled": ProcessingStage.CANCELLED,
+        }
+        ui_stage = stage_map.get(stage.value, ProcessingStage.IDLE)
+        set_current_stage(ui_stage)
+        
+        if stage.value in ("ingesting", "chunking"):
+            st.session_state.processing_stage = "parsing"
+        else:
+            st.session_state.processing_stage = stage.value
+        
+        if total_chapters > 0:
+            if stage.value == "ingesting" and chapter_idx < total_chapters:
+                from modules.ui.progress import get_progress
+                progress = get_progress()
+                if chapter_idx < len(progress.chapters):
+                    progress.chapters[chapter_idx].is_parsed = True
+            
+            update_chapter_progress(
+                chapter_idx=chapter_idx,
+                completed_chunks=chunk_idx,
+                total_chunks=total_chunks,
+                stage=ui_stage,
+            )
+        
+        if message:
+            add_log(message)
+    
+    # Save file and create pipeline
+    source_path = save_uploaded_file(uploaded_file, uploaded_file.name)
+    
+    config = PipelineConfig(
+        voice=voice,
+        speed=speed,
+        output_dir=Path("output"),
+        temp_dir=Path("temp"),
+    )
+    
+    pipeline = ConversionPipeline(
+        config=config,
+        progress_callback=on_progress,
+        verbose_callback=on_verbose,
+    )
+    
+    # Store pipeline for cancellation
+    st.session_state.active_pipeline = pipeline
+    
+    # Start thread
+    st.session_state.thread_running = True
+    conversion_thread = threading.Thread(
+        target=run_conversion_in_thread,
+        args=(pipeline, source_path),
+        daemon=True,
+    )
+    conversion_thread.start()
+    st.session_state.conversion_thread = conversion_thread
+    
+    add_log("conversion started in background thread")
+    add_terminal_log("Conversion running in background...", "process")
+
+
+def stop_conversion():
+    """
+    Stop the running conversion.
+    """
+    from modules.ui.terminal import add_terminal_log
+    from modules.ui.progress import request_cancellation, clear_cancellation
+    
+    if st.session_state.active_pipeline:
+        st.session_state.active_pipeline.cancel()
+    
+    request_cancellation()
+    st.session_state.conversion_cancelled = True
+    st.session_state.status = "idle"
+    st.session_state.active_model = None
+    add_log("conversion cancellation requested...")
+    add_terminal_log("Conversion cancelled by user", "warning")
+    
+    # Don't clean up thread state immediately - let it finish naturally
+    # The thread will check cancellation and exit cleanly
 
 
 # ============================================
@@ -168,93 +380,76 @@ st.markdown("---")
 # SIDEBAR
 # ============================================
 with st.sidebar:
+    # ==========================================
+    # SECTION 1: NAVIGATION
+    # ==========================================
     st.markdown("### NAVIGATION")
     st.markdown("")
 
-    # Upload button
-    if st.button("UPLOAD", key="nav_upload", use_container_width=True):
-        st.session_state.view = "upload"
-
-    # Play button
-    if st.button("PLAY", key="nav_play", use_container_width=True):
-        st.session_state.view = "play"
-
-    # Library button
-    if st.button("LIBRARY", key="nav_library", use_container_width=True):
-        st.session_state.view = "library"
-    
-    # Checklist/Explorer button
-    if st.button("EXPLORER", key="nav_checklist", use_container_width=True):
-        st.session_state.view = "checklist"
+    nav_col1, nav_col2 = st.columns(2)
+    with nav_col1:
+        if st.button("UPLOAD", key="nav_upload", use_container_width=True):
+            st.session_state.view = "upload"
+            st.rerun()
+        if st.button("LIBRARY", key="nav_library", use_container_width=True):
+            st.session_state.view = "library"
+            st.rerun()
+    with nav_col2:
+        if st.button("PLAY", key="nav_play", use_container_width=True):
+            st.session_state.view = "play"
+            st.rerun()
+        if st.button("EXPLORER", key="nav_checklist", use_container_width=True):
+            st.session_state.view = "checklist"
+            st.rerun()
 
     st.markdown("---")
-
-    # Voice selection with descriptions
-    st.markdown("### VOICE ENGINE")
+    
+    # ==========================================
+    # SECTION 2: VOICE SETTINGS (PRE-CONVERSION)
+    # ==========================================
+    st.markdown("### VOICE SETTINGS")
+    st.markdown("<small>configure before starting conversion</small>", 
+                unsafe_allow_html=True)
+    st.markdown("")
 
     # Voice options with descriptions
     voice_options = {
-        "am_adam": "Adam (American Male) - deep, authoritative",
-        "af_bella": "Bella (American Female) - warm, conversational",
-        "am_michael": "Michael (American Male) - friendly, casual",
-        "af_sarah": "Sarah (American Female) - professional, clear",
-        "bf_emma": "Emma (British Female) - refined, articulate",
-        "bm_george": "George (British Male) - classic, distinguished",
+        "am_adam": "Adam (American Male)",
+        "af_bella": "Bella (American Female)",
+        "am_michael": "Michael (American Male)",
+        "af_sarah": "Sarah (American Female)",
+        "bf_emma": "Emma (British Female)",
+        "bm_george": "George (British Male)",
+    }
+    
+    voice_descriptions = {
+        "am_adam": "deep, authoritative",
+        "af_bella": "warm, conversational",
+        "am_michael": "friendly, casual",
+        "af_sarah": "professional, clear",
+        "bf_emma": "refined, articulate",
+        "bm_george": "classic, distinguished",
     }
 
+    # Voice selection
+    st.markdown("<small>**SELECT VOICE:**</small>", unsafe_allow_html=True)
     voice = st.selectbox(
         "voice",
         options=list(voice_options.keys()),
-        format_func=lambda x: voice_options[x],
+        format_func=lambda x: f"{voice_options[x]} - {voice_descriptions[x]}",
         index=list(voice_options.keys()).index(st.session_state.selected_voice),
         label_visibility="collapsed",
         key="voice_select",
+        disabled=st.session_state.status == "processing",
     )
     st.session_state.selected_voice = voice
+    st.markdown(f"<small style='color: var(--text-dim);'>{voice_descriptions[voice]}</small>", 
+                unsafe_allow_html=True)
 
-    # Preview button - plays actual TTS sample
-    if st.button("preview", key="voice_preview", use_container_width=True):
-        add_log(f"generating preview: {voice}")
-        preview_text = (
-            "A few light taps upon the pane made him turn to the window. "
-            "It had begun to snow again. He watched sleepily the flakes, "
-            "silver and dark, falling obliquely against the lamplight."
-        )
-        try:
-            from modules.tts.engine import TTSEngine
-            import tempfile
-            import base64
-
-            with st.spinner("Generating preview..."):
-                engine = TTSEngine()
-                engine.load_model()
-                audio = engine.synthesize(
-                    preview_text, voice=voice, speed=st.session_state.selected_speed
-                )
-
-                # Save to temp file and create audio player
-                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-                    import soundfile as sf
-
-                    sf.write(f.name, audio, 24000)
-
-                    # Read and encode for HTML audio
-                    with open(f.name, "rb") as audio_file:
-                        audio_bytes = audio_file.read()
-                        audio_b64 = base64.b64encode(audio_bytes).decode()
-                        st.markdown(
-                            f'<audio autoplay controls src="data:audio/wav;base64,{audio_b64}"></audio>',
-                            unsafe_allow_html=True,
-                        )
-
-                engine.unload_model()
-                add_log(f"preview complete: {voice}")
-        except Exception as e:
-            add_log(f"preview error: {str(e)}")
-            st.error(f"Preview failed: {e}")
-
-    # Speed slider
-    st.markdown("### SPEED")
+    st.markdown("")
+    
+    # Speed selection
+    st.markdown("<small>**SPEECH SPEED:**</small>", unsafe_allow_html=True)
     speed = st.slider(
         "speed",
         min_value=0.5,
@@ -263,20 +458,16 @@ with st.sidebar:
         step=0.1,
         label_visibility="collapsed",
         key="speed_slider",
+        disabled=st.session_state.status == "processing",
     )
     st.session_state.selected_speed = speed
-    st.markdown(f"`{speed}x`")
+    st.markdown(f"<small>`{speed}x` speed</small>", unsafe_allow_html=True)
 
     st.markdown("---")
 
-    # Stats
-    st.markdown("### CURRENT SETTINGS")
-    st.markdown(f"voice: `{voice}`")
-    st.markdown(f"speed: `{speed}x`")
-
-    st.markdown("---")
-
-    # System Monitor - CPU/RAM stats
+    # ==========================================
+    # SECTION 3: SYSTEM MONITOR
+    # ==========================================
     st.markdown("### SYSTEM MONITOR")
     render_system_stats()
 
@@ -422,232 +613,93 @@ if st.session_state.view in ("upload", "play"):
                 f"**voice:** `{st.session_state.selected_voice}` | **speed:** `{st.session_state.selected_speed}x`"
             )
 
-            # Conversion control buttons
+            # Conversion Settings - Voice selection BEFORE conversion
             st.markdown("")
+            st.markdown("---")
+            st.markdown("### CONVERSION SETTINGS")
+            
+            # Show current settings
+            settings_col1, settings_col2 = st.columns(2)
+            with settings_col1:
+                st.markdown(f"**voice:** `{st.session_state.selected_voice}`")
+            with settings_col2:
+                st.markdown(f"**speed:** `{st.session_state.selected_speed}x`")
+            
+            # Voice preview (before conversion)
+            if st.button("🔊 preview voice", use_container_width=True, key="preview_before"):
+                add_log(f"generating preview: {st.session_state.selected_voice}")
+                preview_text = (
+                    "A few light taps upon the pane made him turn to the window. "
+                    "It had begun to snow again."
+                )
+                try:
+                    from modules.tts.engine import TTSEngine
+                    import tempfile
+                    import base64
+                    import soundfile as sf
 
+                    with st.spinner("generating preview..."):
+                        engine = TTSEngine()
+                        engine.load_model()
+                        audio = engine.synthesize(
+                            preview_text, voice=st.session_state.selected_voice, 
+                            speed=st.session_state.selected_speed
+                        )
+
+                        # Save to temp file and create audio player
+                        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                            sf.write(f.name, audio, 24000)
+
+                            # Read and encode for HTML audio
+                            with open(f.name, "rb") as audio_file:
+                                audio_bytes = audio_file.read()
+                                audio_b64 = base64.b64encode(audio_bytes).decode()
+                                st.markdown(
+                                    f'<audio autoplay controls src="data:audio/wav;base64,{audio_b64}" '
+                                    f'style="width:100%;height:30px;"></audio>',
+                                    unsafe_allow_html=True,
+                                )
+
+                        engine.unload_model()
+                        add_log(f"preview complete")
+                except Exception as e:
+                    add_log(f"preview error: {str(e)}")
+                    st.error(f"Preview failed: {e}")
+            
+            st.markdown("")
+            
+            # Conversion control buttons
+            # Check conversion status at start of each run
+            check_conversion_status()
+            
             # Show STOP button if processing
             if st.session_state.status == "processing":
                 if st.button(
-                    "[X] STOP CONVERSION", use_container_width=True, type="secondary"
+                    "⏹ STOP CONVERSION", use_container_width=True, type="secondary"
                 ):
-                    from modules.ui.progress import request_cancellation
-
-                    request_cancellation()
-                    st.session_state.conversion_cancelled = True
-                    st.session_state.status = "idle"
-                    st.session_state.active_model = None
-                    add_log("conversion cancellation requested...")
-                    add_terminal_log("Conversion cancelled by user", "warning")
+                    stop_conversion()
                     st.rerun()
+                
+                # Show processing indicator
+                st.info("⏳ Conversion in progress... (check terminal for details)")
+                
+                # Auto-refresh to check status
+                time.sleep(0.5)
+                st.rerun()
             else:
                 # START CONVERSION BUTTON
+                start_disabled = st.session_state.status in ("processing",)
                 if st.button(
-                    "[>] START CONVERSION", use_container_width=True, type="primary"
+                    "▶ START CONVERSION", 
+                    use_container_width=True, 
+                    type="primary",
+                    disabled=start_disabled,
                 ):
-                    st.session_state.status = "processing"
-                    st.session_state.processing_stage = "ingesting"
-                    st.session_state.conversion_cancelled = False
-                    add_log("starting conversion...")
-                    add_log(
-                        f"voice: {st.session_state.selected_voice}, speed: {st.session_state.selected_speed}x"
+                    start_conversion(
+                        uploaded_file, 
+                        st.session_state.selected_voice, 
+                        st.session_state.selected_speed
                     )
-                    add_terminal_log(
-                        f"Starting conversion with voice: {st.session_state.selected_voice}",
-                        "process",
-                    )
-
-                    # Define callbacks (outside thread for session state access)
-                    def on_verbose(msg, msg_type):
-                        add_terminal_log(msg, msg_type)
-
-                        # Update active model based on log messages
-                        if "text cleaner" in msg.lower() or "cleaner" in msg.lower():
-                            st.session_state.active_model = "cleaner"
-                            st.session_state.cleaner_model_loaded = True
-                        elif "tts" in msg.lower() and "model" in msg.lower():
-                            st.session_state.active_model = "tts"
-                            st.session_state.tts_model_loaded = True
-                        elif "unloaded" in msg.lower():
-                            # Model was unloaded
-                            if "cleaner" in msg.lower():
-                                st.session_state.cleaner_model_loaded = False
-                            elif "tts" in msg.lower():
-                                st.session_state.tts_model_loaded = False
-
-                    # Create pipeline with callbacks
-                    from modules.pipeline.orchestrator import (
-                        ConversionPipeline,
-                        PipelineConfig,
-                    )
-                    from modules.ui.progress import (
-                        set_chapters,
-                        update_chapter_progress,
-                        set_current_stage,
-                        ProcessingStage,
-                        request_cancellation,
-                        is_cancelled,
-                    )
-
-                    # Configure pipeline
-                    config = PipelineConfig(
-                        voice=st.session_state.selected_voice,
-                        speed=st.session_state.selected_speed,
-                        output_dir=Path("output"),
-                        temp_dir=Path("temp"),
-                    )
-
-                    # Progress callback
-                    def on_progress(
-                        stage,
-                        chapter_idx,
-                        total_chapters,
-                        chunk_idx,
-                        total_chunks,
-                        message,
-                        eta,
-                    ):
-                        # Map pipeline stage to UI stage
-                        stage_map = {
-                            "ingesting": ProcessingStage.PARSING,
-                            "chunking": ProcessingStage.PARSING,
-                            "cleaning": ProcessingStage.CLEANING,
-                            "synthesizing": ProcessingStage.SYNTHESIZING,
-                            "encoding": ProcessingStage.ENCODING,
-                            "packaging": ProcessingStage.PACKAGING,
-                            "complete": ProcessingStage.COMPLETE,
-                            "error": ProcessingStage.ERROR,
-                            "cancelled": ProcessingStage.CANCELLED,
-                        }
-                        ui_stage = stage_map.get(stage.value, ProcessingStage.IDLE)
-                        set_current_stage(ui_stage)
-
-                        # Update session state for parsing progress
-                        if stage.value in ("ingesting", "chunking"):
-                            st.session_state.processing_stage = "parsing"
-                        else:
-                            st.session_state.processing_stage = stage.value
-
-                        # Update chapter progress
-                        if total_chapters > 0:
-                            # During parsing, mark chapters as parsed
-                            if (
-                                stage.value == "ingesting"
-                                and chapter_idx < total_chapters
-                            ):
-                                progress = get_progress()
-                                if chapter_idx < len(progress.chapters):
-                                    progress.chapters[chapter_idx].is_parsed = True
-
-                            update_chapter_progress(
-                                chapter_idx=chapter_idx,
-                                completed_chunks=chunk_idx,
-                                total_chunks=total_chunks,
-                                stage=ui_stage,
-                            )
-
-                        if message:
-                            add_log(message)
-
-                    # Save file before starting thread
-                    from modules.ui.conversion import save_uploaded_file
-
-                    source_path = save_uploaded_file(uploaded_file, uploaded_file.name)
-
-                    pipeline = ConversionPipeline(
-                        config=config,
-                        progress_callback=on_progress,
-                        verbose_callback=on_verbose,
-                    )
-
-                    # Start conversion in background thread
-                    st.session_state.thread_running = True
-                    st.session_state.thread_error = None
-                    st.session_state.conversion_result = None
-
-                    conversion_thread = threading.Thread(
-                        target=run_conversion_in_thread,
-                        args=(pipeline, source_path),
-                        daemon=True,
-                    )
-                    conversion_thread.start()
-                    st.session_state.conversion_thread = conversion_thread
-
-                    add_log("conversion started in background thread")
-                    add_terminal_log("Conversion running in background...", "process")
-
-                    # Poll until thread completes
-                    progress_placeholder = st.empty()
-                    while st.session_state.thread_running:
-                        progress_placeholder.info(
-                            "⏳ Converting... (check terminal for real-time updates)"
-                        )
-                        time.sleep(0.5)
-                        st.rerun()
-
-                    # Thread finished - process result
-                    progress_placeholder.empty()
-
-                    # Reset active model
-                    st.session_state.active_model = None
-
-                    # Check for errors
-                    if st.session_state.thread_error:
-                        st.session_state.status = "error"
-                        add_log(f"conversion failed: {st.session_state.thread_error}")
-                        add_terminal_log(f"Conversion failed: {st.session_state.thread_error}", "error")
-                        st.rerun()
-
-                    # Get result
-                    result = st.session_state.conversion_result
-
-                    if result is None:
-                        st.session_state.status = "error"
-                        add_log("conversion failed: no result returned")
-                        add_terminal_log("Conversion failed: no result returned", "error")
-                        st.rerun()
-
-                    if result.success:
-                        st.session_state.status = "complete"
-                        add_log(f"conversion complete: {result.output_path}")
-                        add_terminal_log("Conversion complete!", "success")
-
-                        # Save to Library Database
-                        try:
-                            db = Database()
-                            book_id = db.create_book(
-                                title=result.title,
-                                author=result.author,
-                                source_path=uploaded_file.name,
-                                source_type=Path(uploaded_file.name)
-                                .suffix.lstrip(".")
-                                .lower(),
-                                total_chapters=len(result.chapters),
-                            )
-
-                            for ch in result.chapters:
-                                db.create_chapter(
-                                    book_id=book_id,
-                                    chapter_number=ch.chapter_number,
-                                    title=ch.chapter_title,
-                                    duration_ms=ch.duration_ms,
-                                    mp3_path=str(ch.mp3_path) if ch.mp3_path else None,
-                                )
-                            add_log("added to library")
-                        except Exception as e:
-                            add_log(f"database error: {e}")
-
-                    elif result.error == "Cancelled":
-                        st.session_state.status = "cancelled"
-                        add_log("conversion cancelled")
-                    else:
-                        st.session_state.status = "error"
-                        add_log(f"conversion failed: {result.error}")
-                        add_terminal_log(f"Conversion failed: {result.error}", "error")
-
-                    # Clean up thread state
-                    st.session_state.conversion_thread = None
-                    st.session_state.thread_running = False
-
                     st.rerun()
 
             # Show download button if conversion complete
