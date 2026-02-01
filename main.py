@@ -579,8 +579,7 @@ if st.session_state.view in ("upload", "play"):
                     progress_placeholder = st.empty()
                     while st.session_state.thread_running:
                         progress_placeholder.info(
-                            "[WAIT] Converting... (check terminal for real-time updates)",
-                            icon=""
+                            "⏳ Converting... (check terminal for real-time updates)"
                         )
                         time.sleep(0.5)
                         st.rerun()
