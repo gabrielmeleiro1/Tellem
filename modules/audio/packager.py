@@ -15,6 +15,8 @@ from dataclasses import dataclass
 import json
 import tempfile
 
+from ..errors import FFmpegNotFoundError
+
 
 def _check_ffmpeg() -> bool:
     """Check if FFmpeg is available in PATH."""
@@ -60,9 +62,7 @@ class M4BPackager:
     def __init__(self):
         """Initialize the M4B packager."""
         if not _check_ffmpeg():
-            raise RuntimeError(
-                "FFmpeg not found. Install with: brew install ffmpeg"
-            )
+            raise FFmpegNotFoundError()
     
     def create_m4b(
         self,

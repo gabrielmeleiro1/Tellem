@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Optional
 import json
 
+from ..errors import FFmpegNotFoundError
+
 
 def _check_ffmpeg() -> bool:
     """Check if FFmpeg is available in PATH."""
@@ -41,9 +43,7 @@ class AudioEncoder:
             sample_rate: Audio sample rate in Hz (default 24000)
         """
         if not _check_ffmpeg():
-            raise RuntimeError(
-                "FFmpeg not found. Install with: brew install ffmpeg"
-            )
+            raise FFmpegNotFoundError()
         
         self.bitrate = bitrate
         self.sample_rate = sample_rate
@@ -118,9 +118,7 @@ class AudioEncoder:
             raise FileNotFoundError(f"File not found: {file_path}")
         
         if not _check_ffprobe():
-            raise RuntimeError(
-                "FFprobe not found. Install with: brew install ffmpeg"
-            )
+            raise FFmpegNotFoundError()
         
         cmd = [
             "ffprobe",

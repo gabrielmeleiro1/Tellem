@@ -2,34 +2,44 @@
 # Python 3.11+ required
 
 # Core Framework
-streamlit>=1.30.0
+streamlit==1.30.0
 
 # PDF/EPUB Parsing
-pymupdf4llm>=0.0.10
-ebooklib>=0.18
-beautifulsoup4>=4.12.0
-lxml>=5.0.0
+pymupdf4llm==0.0.10
+ebooklib==0.18
+beautifulsoup4==4.12.0
+lxml==5.0.0
 
 # Machine Learning (MLX - Apple Silicon)
-mlx>=0.10.0
-mlx-lm>=0.10.0
-# mlx-audio>=0.1.0  # Uncomment when available
+mlx==0.10.0
+mlx-lm==0.10.0
+mlx-audio==0.1.0
 
 # Audio Processing
-pydub>=0.25.1
-soundfile>=0.12.1
+pydub==0.25.1
+soundfile==0.12.1
 
 # Database
-sqlite-utils>=3.35
+sqlite-utils==3.35
 
 # Utilities
-tqdm>=4.66.0
-pyyaml>=6.0.1
-python-dotenv>=1.0.0
-psutil>=5.9.0
+tqdm==4.66.0
+pyyaml==6.0.1
+python-dotenv==1.0.0
+psutil==5.9.0
+
+# Async I/O
+aiofiles==23.0.0
+aiohttp==3.9.0
+
+# Windows Terminal Colors
+colorama==0.4.6
+
+# Parallel Processing
+multiprocessing-logging==0.3.4  # Optional: better logging in subprocesses
 
 # Development (optional)
-pytest>=7.4.0
-pytest-cov>=4.1.0
-black>=23.12.0
-ruff>=0.1.8
+pytest==7.4.0
+pytest-cov==4.1.0
+black==23.12.0
+ruff==0.1.8

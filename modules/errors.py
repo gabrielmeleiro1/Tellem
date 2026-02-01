@@ -134,11 +134,22 @@ class SynthesisError(AudiobookError):
 
 class FFmpegNotFoundError(AudiobookError):
     """Error when FFmpeg is not installed."""
+    
+    INSTALL_INSTRUCTIONS = """FFmpeg is required but not found in PATH.
+
+Installation instructions:
+  macOS:    brew install ffmpeg
+  Ubuntu:   sudo apt update && sudo apt install ffmpeg
+  Windows:  winget install Gyan.FFmpeg
+            or download from: https://ffmpeg.org/download.html
+
+After installation, ensure 'ffmpeg' is available in your system PATH."""
+    
     def __init__(self):
         super().__init__(
             code=ErrorCode.E203,
             message="FFmpeg is required but not found",
-            details="Install with: brew install ffmpeg"
+            details=self.INSTALL_INSTRUCTIONS
         )
 
 
