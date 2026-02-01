@@ -14,6 +14,7 @@ class TestConversionPipeline:
              patch("modules.tts.cleaner.TextCleaner") as mock_cleaner, \
              patch("modules.tts.chunker.TextChunker") as mock_chunker, \
              patch("modules.tts.engine.TTSEngine") as mock_tts, \
+             patch("modules.tts.engine.concatenate_audio_files") as mock_concat, \
              patch("modules.audio.processor.AudioProcessor") as mock_proc, \
              patch("modules.audio.encoder.AudioEncoder") as mock_enc, \
              patch("modules.audio.packager.M4BPackager") as mock_pkg:
@@ -33,13 +34,45 @@ class TestConversionPipeline:
             ]
             mock_pdf.return_value.parse.return_value = mock_doc
             
-            mock_cleaner.return_value.__enter__.return_value.clean.side_effect = lambda x: x
+            # TextCleaner now uses persistent instance with load/clean/unload
+            mock_cleaner_instance = MagicMock()
+            mock_cleaner_instance.clean.side_effect = lambda x: x
+            mock_cleaner.return_value = mock_cleaner_instance
             
             # TextChunker is instantiated, so we mock the instance method
             mock_chunker.return_value.chunk.return_value = ["chunk1"]
             mock_chunker.chunk_text.return_value = ["chunk1"] # Fallback
             
-            mock_tts.return_value.synthesize.return_value = [0.1]
+            # Mock batch synthesis - returns BatchResult-like objects
+            from modules.tts.engine import BatchResult
+            import numpy as np
+            
+            def mock_synthesize_batch(items, progress_callback=None):
+                """Mock batch synthesis that returns audio arrays."""
+                results = []
+                for i, item in enumerate(items):
+                    result = BatchResult(
+                        audio=np.array([0.1, 0.2, 0.3], dtype=np.float32),
+                        index=i,
+                        error=None,
+                        duration_ms=100
+                    )
+                    results.append(result)
+                    if progress_callback:
+                        progress_callback(i + 1, len(items))
+                return results
+            
+            mock_tts_instance = MagicMock()
+            mock_tts_instance.synthesize_batch.side_effect = mock_synthesize_batch
+            mock_tts_instance.synthesize.return_value = np.array([0.1, 0.2, 0.3], dtype=np.float32)
+            mock_tts.return_value = mock_tts_instance
+            
+            # Mock concatenate_audio_files to just create the output file
+            def mock_concat_side_effect(file_paths, output_path, use_memmap=True):
+                Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+                Path(output_path).write_bytes(b"fake wav content")
+                return Path(output_path)
+            mock_concat.side_effect = mock_concat_side_effect
             
             mock_proc.return_value.load.return_value = MagicMock()
             mock_proc.return_value.normalize_volume.return_value = MagicMock()
@@ -48,6 +81,7 @@ class TestConversionPipeline:
             
             # Make encoder.wav_to_mp3 actually create the file
             def wav_to_mp3_side_effect(wav_path, output_path, bitrate="128k"):
+                Path(output_path).parent.mkdir(parents=True, exist_ok=True)
                 Path(output_path).write_bytes(b"fake mp3 content")
             mock_enc.return_value.wav_to_mp3.side_effect = wav_to_mp3_side_effect
             
