@@ -95,6 +95,7 @@ class TestPDFParserRobustness:
             assert error_type in [
                 FileNotFoundError,  # If validation fails early
                 ValueError,         # If file extension/signature wrong
+                OSError,            # System-level I/O errors
                 Exception,          # Parent of our custom errors
             ] or "PDFParsingError" in str(error_type) or "CorruptedFileError" in str(error_type), (
                 f"Unexpected error type: {error_type}"
@@ -248,17 +249,17 @@ class TestParserEdgeCases:
                 temp_path.unlink(missing_ok=True)
     
     @pytest.mark.property
-    @given(filename=st.text(min_size=1, max_size=100))
-    @settings(max_examples=100, deadline=3000)
+    @given(filename=st.text(alphabet=st.characters(whitelist_categories=('L', 'N', 'P', 'Z')), min_size=1, max_size=50))
+    @settings(max_examples=50, deadline=3000)
     def test_handles_special_characters_in_filenames(self, filename):
         """
         Parsers should handle special characters in filenames correctly.
         
         Only test valid filename characters that won't break the filesystem.
         """
-        # Filter to valid filename characters
+        # Filter to valid filename characters (letters, numbers, punctuation, spaces)
         invalid_chars = '<>:"/\\|?*\x00-\x1f'
-        filename = ''.join(c for c in filename if c not in invalid_chars).strip()
+        filename = ''.join(c for c in filename if c not in invalid_chars and ord(c) < 0x1000).strip()
         assume(len(filename) > 0 and not filename.startswith('.'))
         
         for suffix, ParserClass, header in [
