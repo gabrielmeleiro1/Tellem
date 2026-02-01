@@ -256,20 +256,6 @@
 
 ## 6. Testing & Quality
 
-### 6.1 Test Coverage
-- [ ] **Achieve 80%+ test coverage**
-  - Current: ~40% (estimated from `tests/` folder)
-  - Mock heavy dependencies (MLX, FFmpeg)
-  - Add integration tests with small fixtures
-  
-- [ ] **Property-based testing**
-  - Use `hypothesis` for fuzz testing
-  - Test text chunker with edge cases
-  - Test file parsing with malformed inputs
-  
-- [ ] **Performance regression tests**
-  - Benchmark TTS speed (chars/sec)
-  - Fail test if >10% slower than baseline
 
 ### 6.2 CI/CD Pipeline
 - [ ] **GitHub Actions setup**
