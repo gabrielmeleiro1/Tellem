@@ -15,10 +15,26 @@ def test_data_dir():
 def sample_pdf(test_data_dir):
     """Return path to sample PDF."""
     path = test_data_dir / "sample.pdf"
-    if not path.exists():
-        # Create a dummy PDF file if it doesn't exist
-        with open(path, "wb") as f:
-            f.write(b"%PDF-1.4\n%EOF")
+    # Create a minimal valid PDF structure (larger than 100 bytes to pass validation)
+    pdf_content = b"""%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [] /Count 0 >>
+endobj
+xref
+0 3
+0000000000 65535 f 
+0000000009 00000 n 
+0000000052 00000 n 
+trailer
+<< /Size 3 /Root 1 0 R >>
+startxref
+110
+%%EOF
+"""
+    path.write_bytes(pdf_content)
     return path
 
 @pytest.fixture
