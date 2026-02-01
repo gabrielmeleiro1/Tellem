@@ -6,6 +6,30 @@ Custom Streamlit components and styling utilities.
 Includes Industrial Moss theme components for a brutalist, instrument-like UI.
 """
 
+# Industrial Moss Component Library
+from .components import (
+    # Button components
+    MossButton,
+    ButtonVariant,
+    ButtonSize,
+    moss_button,
+    # Panel components
+    MossPanel,
+    PanelHeader,
+    PanelVariant,
+    moss_panel,
+    # Progress components
+    MossProgress,
+    ProgressVariant,
+    moss_progress,
+    # Badge components
+    MossBadge,
+    BadgeVariant,
+    moss_badge,
+    # Divider
+    moss_divider,
+)
+
 # Legacy progress components
 from .progress import (
     ProcessingStage,
@@ -102,6 +126,22 @@ from .output_panel import (
 )
 
 __all__ = [
+    # Component Library
+    "MossButton",
+    "ButtonVariant",
+    "ButtonSize",
+    "moss_button",
+    "MossPanel",
+    "PanelHeader",
+    "PanelVariant",
+    "moss_panel",
+    "MossProgress",
+    "ProgressVariant",
+    "moss_progress",
+    "MossBadge",
+    "BadgeVariant",
+    "moss_badge",
+    "moss_divider",
     # Legacy progress
     "ProcessingStage",
     "ChapterProgress",
