@@ -1,0 +1,476 @@
+# Audiobook Creator - Implementation Guidelines & Checklist
+
+> **Version:** 1.0.0  
+> **Last Updated:** 2026-02-01  
+> **Status:** Living Document
+
+---
+
+## Table of Contents
+
+1. [Performance & Optimization](#1-performance--optimization)
+2. [UI/UX Improvements](#2-uiux-improvements)
+3. [Architecture & Refactoring](#3-architecture--refactoring)
+4. [New Features](#4-new-features)
+5. [Platform Alternatives](#5-platform-alternatives)
+6. [Testing & Quality](#6-testing--quality)
+7. [Documentation](#7-documentation)
+8. [Infrastructure & DevOps](#8-infrastructure--devops)
+9. [Quick Wins (High Priority)](#9-quick-wins-high-priority)
+
+---
+
+
+
+### 1.2 Pipeline Parallelization
+- [x] **Chapter-level parallel processing**
+  - Process multiple chapters concurrently (configurable: 2-4 chapters)
+  - Use `ProcessPoolExecutor` to bypass Python GIL
+  - Proper VRAM budget management implemented
+  - File: [`modules/pipeline/parallel.py`](modules/pipeline/parallel.py:267) - [`ChapterWorkerPool`](modules/pipeline/parallel.py:267)
+  
+- [x] **Async I/O for file operations**
+  - Use `aiofiles` for reading/writing audio files
+  - Non-blocking disk operations for large audio datasets
+  - File: [`modules/pipeline/parallel.py`](modules/pipeline/parallel.py:108) - [`AsyncFileManager`](modules/pipeline/parallel.py:108)
+  
+- [x] **Pipeline stage pipelining**
+  - Start encoding Chapter N-1 while synthesizing Chapter N
+  - Overlap compute-bound and I/O-bound stages
+  - File: [`modules/pipeline/parallel.py`](modules/pipeline/parallel.py:173) - [`PipelinedStage`](modules/pipeline/parallel.py:173)
+
+### 1.3 Memory Management
+- [x] **VRAM monitoring & dynamic batch sizing**
+  - Real-time VRAM monitoring via [`VRAMMonitor`](modules/tts/vram_monitor.py:64)
+  - Dynamic batch size reduction based on VRAM pressure levels
+  - File: [`modules/tts/vram_monitor.py`](modules/tts/vram_monitor.py:64) - [`VRAMMonitor`](modules/tts/vram_monitor.py:64)
+  
+- [x] **Automatic idle timeout unloading**
+  - Automatically unload models when idle for >5 minutes
+  - Configurable timeout with warning before unload
+  - File: [`modules/tts/vram_monitor.py`](modules/tts/vram_monitor.py:231) - [`IdleTimeoutManager`](modules/tts/vram_monitor.py:231)
+  
+- [x] **Memory pooling for audio buffers**
+  - Reuse numpy arrays via [`BufferPool`](modules/audio/buffer_pool.py:95)
+  - Thread-safe buffer pool pattern for chunk audio
+  - File: [`modules/audio/buffer_pool.py`](modules/audio/buffer_pool.py:95) - [`BufferPool`](modules/audio/buffer_pool.py:95)
+  
+- [x] **Aggressive garbage collection**
+  - Call `gc.collect()` after each chapter
+  - Clear CUDA/MLX cache between operations
+  - File: [`modules/tts/memory.py`](modules/tts/memory.py:128) - [`clear_vram()`](modules/tts/memory.py:128)
+
+---
+
+## 2. UI/UX Improvements
+
+### 2.1 Streamlit Enhancements (Current UI)
+- [ ] **Implement WebSocket-based progress updates**
+  - Replace polling with push-based updates
+  - Reduces UI flickering and improves responsiveness
+
+- [ ] **Better error handling in UI**
+  - Toast notifications for errors
+  - Inline error recovery suggestions
+  - "Retry failed chapters" button
+  
+- [ ] **Dark/Light theme toggle**
+  - Industrial Moss is great, but users may want choice
+  - Store preference in localStorage
+  
+- [ ] **Responsive layout for mobile**
+  - Current grid layout breaks on <768px width
+  - Stack columns vertically on mobile
+  - Enable touch-friendly controls
+
+### 2.2 UI Component Library
+- [ ] **Extract reusable components**
+  - Create `MossButton`, `MossPanel`, `MossProgress` components
+  - Standardize spacing, colors, typography
+  - Document component API
+  
+- [ ] **Waveform visualization improvements**
+  - Show real-time generation waveform
+  - Allow seeking within chapter previews  
+  - File: [`modules/ui/waveform.py`](modules/ui/waveform.py)
+
+### 2.3 SwiftUI Alternative (Native macOS app)
+- [ ] **Evaluate Swift migration**
+  - **Pros:** Native performance, better memory management, offline capability, App Store distribution
+  - **Cons:** Rewrite effort, lose cross-platform potential
+  
+- [ ] **Swift + Python Bridge approach**
+  - Keep Python backend (TTS, audio processing)
+  - Build SwiftUI frontend that calls Python via `swift-bridge` or `PythonKit`
+  - Best of both worlds: Fast UI + existing ML code
+  
+- [ ] **Avenue to explore: Swift-NIO + Python microservices**
+  - Python TTS service runs in background
+  - Swift app communicates via gRPC/REST
+  - Enables headless mode as well
+
+### 2.4 Web Alternative (If not Swift)
+- [ ] **Consider Gradio vs Streamlit vs FastAPI+React**
+  - Gradio: Better audio components, simpler API
+  - FastAPI+React: Full control, better performance
+  - Streamlit: Keep current but optimize
+  
+- [ ] **Progressive Web App (PWA)**
+  - Enable offline conversion status checking
+  - Background processing notifications
+  - Install to home screen capability
+
+---
+
+## 3. Architecture & Refactoring
+
+### 3.1 Code Organization
+- [ ] **Move business logic out of UI layer**
+  - `main.py` is bloated (748 lines)
+  - Create `Application` or `AppController` class
+  - UI layer should only handle presentation
+  
+- [ ] **Implement Repository Pattern**
+  - Abstract storage behind interfaces
+  - Enables SQLite → PostgreSQL migration later
+  - File: [`modules/storage/database.py`](modules/storage/database.py)
+  
+- [ ] **Refactor pipeline to use Strategy Pattern**
+  - Separate TTS engines (Kokoro, Orpheus, future) as strategies
+  - Cleaner selection of processing approach
+
+### 3.2 Configuration Management
+- [ ] **Implement hierarchical config**
+  - Config file → Environment variables → CLI args → UI settings
+  - Use Pydantic Settings for validation
+  - Hot-reload support for development
+  - File: [`config/settings.py`](config/settings.py)
+  
+- [ ] **Per-book configuration**
+  - Save book-specific settings (voice, speed) in database
+  - Resume conversion with same settings
+
+### 3.3 Error Handling Improvements
+- [ ] **Add structured logging**
+  - Replace print/debug logs with structured logging (JSON)
+  - Use `structlog` or standard `logging` with formatters
+  - Different log levels per module
+  
+- [ ] **Circuit breaker pattern**
+  - If TTS fails 3 times, stop pipeline and alert user
+  - Prevents infinite retry loops
+  
+- [ ] **Graceful degradation**
+  - If text cleaner fails, continue with raw text
+  - If audio normalization fails, skip that step
+  - Always produce output even if imperfect
+
+### 3.4 Type Safety
+- [ ] **Enable stricter mypy**
+  - Current codebase has loose typing
+  - Add return types to all functions
+  - Fix existing `Any` types
+  
+- [ ] **Add runtime type validation**
+  - Use `pydantic` for input validation
+  - Validate config at startup
+
+---
+
+## 4. New Features
+
+### 4.1 High Priority Features
+- [ ] **Batch file processing**
+  - Queue multiple books for overnight processing
+  - Priority queue management
+  - Process in order or by estimated time
+  
+
+### 4.2 Medium Priority Features
+- [ ] **Chapter detection improvements**
+  - ML-based chapter boundary detection
+  - Support for books without clear chapter markers
+  - Manual chapter splitting UI
+  
+- [ ] **Audio post-processing options**
+  - Noise reduction
+  - Audio compression options
+  - Chapter fade in/out effects
+  - Normalize per-chapter vs globally
+  
+- [ ] **Multiple format export**
+  - MP3 (current)
+  - M4B (current, but improve)
+  - OGG Vorbis (open source)
+  - FLAC (lossless archival)
+  - WAV (uncompressed)
+  
+- [ ] **Integration with audiobook players**
+  - Export to Apple Books (auto-import)
+  - Export to Audible Cloud Drive
+  - Send to Kindle (via email)
+
+### 4.3 Nice-to-Have Features
+- [ ] **Text highlighting during playback**
+  - Sync text with audio (karaoke-style)
+  - Requires word-level timestamps
+  
+- [ ] **Translation + TTS**
+  - Translate book to another language, then TTS
+  - Multi-language support
+  
+- [ ] **Podcast-style generation**
+  - Multiple voices for dialogue
+  - Sound effects insertion
+  - Music bed (background music)
+
+---
+
+## 5. Platform Alternatives
+
+### 5.1 Swift Native App Assessment
+
+| Aspect | Streamlit (Current) | Swift Native | Hybrid |
+|--------|---------------------|--------------|--------|
+| Performance | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| Development Speed | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
+| Memory Efficiency | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| Offline Capability | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| Cross-Platform | ⭐ | ⭐⭐ (macOS/iOS) | ⭐⭐⭐ |
+| Distribution | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| Developer Experience | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ |
+
+**Recommendation:** Start with **Hybrid approach** (SwiftUI + Python backend)
+
+### 5.2 Hybrid Implementation Plan
+
+```
+┌─────────────────────────────────────────┐
+│          SwiftUI Frontend               │
+│  - Native macOS UI                      │
+│  - File picker, drag-and-drop           │
+│  - Audio player with waveform           │
+│  - Library browser (Finder-like)        │
+└─────────────────────────────────────────┘
+                    │ gRPC / REST
+                    ▼
+┌─────────────────────────────────────────┐
+│        Python Backend Service           │
+│  - TFTPipeline (existing)               │
+│  - TTS Engine (mlx-audio)               │
+│  - Audio Processor (pydub)              │
+│  - gRPC server (grpcio)                 │
+└─────────────────────────────────────────┘
+```
+
+**Implementation Steps:**
+1. [ ] Extract Python backend as gRPC service
+2. [ ] Define protobuf schema for API
+3. [ ] Build SwiftUI project scaffold
+4. [ ] Implement file upload → conversion flow
+5. [ ] Add library browsing in SwiftUI
+6. [ ] Package as macOS app bundle
+
+---
+
+## 6. Testing & Quality
+
+### 6.1 Test Coverage
+- [ ] **Achieve 80%+ test coverage**
+  - Current: ~40% (estimated from `tests/` folder)
+  - Mock heavy dependencies (MLX, FFmpeg)
+  - Add integration tests with small fixtures
+  
+- [ ] **Property-based testing**
+  - Use `hypothesis` for fuzz testing
+  - Test text chunker with edge cases
+  - Test file parsing with malformed inputs
+  
+- [ ] **Performance regression tests**
+  - Benchmark TTS speed (chars/sec)
+  - Fail test if >10% slower than baseline
+
+### 6.2 CI/CD Pipeline
+- [ ] **GitHub Actions setup**
+  - Run tests on push/PR
+  - Type checking with mypy
+  - Linting with ruff
+  - Build Docker image
+  
+- [ ] **Automated releases**
+  - Version bumping based on conventional commits
+  - Generate changelog automatically
+  - Create GitHub releases with artifacts
+
+### 6.3 Code Quality
+- [ ] **Pre-commit hooks**
+  - `ruff` for linting
+  - `black` for formatting
+  - `mypy` for type checking
+  - `pytest` quick test run
+  
+- [ ] **Code review checklist**
+  - All new code has tests
+  - Documentation updated
+  - Performance impact assessed
+
+---
+
+## 7. Documentation
+
+### 7.1 User Documentation
+- [ ] **Create comprehensive README**
+  - Installation instructions (Apple Silicon focus)
+  - Quick start guide with screenshots
+  - Troubleshooting section
+  
+- [ ] **Video tutorial**
+  - 5-minute getting started video
+  - Deep-dive on advanced features
+  
+- [ ] **FAQ document**
+  - Common errors and solutions
+  - Performance optimization tips
+  - Voice selection guidance
+
+### 7.2 Developer Documentation
+- [ ] **Architecture Decision Records (ADRs)**
+  - Why Streamlit was chosen
+  - Why MLX over other frameworks
+  - Why Kokoro TTS model
+  
+- [ ] **API documentation**
+  - Auto-generated from docstrings
+  - Use `mkdocs` with `mkdocstrings`
+  
+- [ ] **Contributing guide**
+  - Development environment setup
+  - Code style guide
+  - Pull request process
+
+---
+
+## 8. Infrastructure & DevOps
+
+### 8.1 Packaging
+- [ ] **PyPI package**
+  - `pip install audiobook-creator`
+  - CLI entry point: `audiobook-cli`
+  
+- [ ] **Homebrew formula**
+  - `brew install audiobook-creator`
+  - Handle dependencies automatically
+  
+- [ ] **Docker image**
+  - Multi-stage build for smaller image
+  - Mount volume for books/output
+  - Support for Linux (non-Apple Silicon)
+
+### 8.2 Telemetry (Optional)
+- [ ] **Anonymous usage stats**
+  - Conversion success/failure rates
+  - Average processing time
+  - Popular voice choices
+  - Opt-in only, GDPR compliant
+  
+- [ ] **Error reporting**
+  - Sentry integration for crash tracking
+  - Automatic issue creation for new errors
+
+---
+
+## 9. Quick Wins (High Priority)
+
+These can be implemented immediately with high impact:
+
+### 9.1 Immediate Fixes
+- [ ] **Fix: Update `requirements.txt`**
+  - Pin exact versions to avoid breakage
+  - Add `mlx-audio` (currently commented out)
+  - Add `colorama` for Windows terminal colors
+  
+- [ ] **Fix: Add output directory to `.gitignore`**
+  - Currently generated files show in git status
+  
+- [ ] **Fix: Handle missing FFmpeg gracefully**
+  - Show helpful error message with install instructions
+  - Current: RuntimeError with stack trace
+
+### 9.2 Quick Features
+- [ ] **Add: Keyboard shortcut for common actions**
+  - Ctrl+Enter to start conversion
+  - Escape to cancel
+  
+- [ ] **Add: Progress persistence**
+  - Write progress to JSON file
+  - Show "Conversion in progress" if app restarted
+  
+- [ ] **Add: Voice preview caching**
+  - Cache preview audio files by voice
+  - Don't regenerate on every preview click
+
+### 9.3 Quick Optimizations
+- [ ] **Optimize: Load models once**
+  - TTS model currently loads per-chapter
+  - Load once, reuse for all chapters
+  
+- [ ] **Optimize: Reduce logging overhead**
+  - Limit log buffer to 100 entries (currently 500)
+  - Use generators for large log streams
+
+---
+
+## Implementation Phases
+
+### Phase 1: Foundation (Weeks 1-2)
+1. Set up CI/CD with GitHub Actions
+2. Add pre-commit hooks
+3. Fix immediate issues (Quick Wins)
+4. Improve test coverage to 70%
+
+### Phase 2: Performance (Weeks 3-4)
+1. Implement model caching
+2. Add VRAM monitoring
+3. Optimize chapter-level processing
+4. Add checkpointing for resume
+
+### Phase 3: UI Polish (Weeks 5-6)
+1. Refactor main.py into cleaner structure
+2. Add keyboard shortcuts
+3. Improve error messaging
+4. Mobile responsive layout
+
+### Phase 4: Features (Weeks 7-8)
+1. Batch processing
+2. Export format options
+3. Audio post-processing
+4. Library search/filter
+
+### Phase 5: Platform (Weeks 9-12)
+1. Evaluate Swift hybrid approach
+2. Build gRPC Python backend
+3. Create SwiftUI scaffold
+4. Beta test native app
+
+---
+
+## Metrics for Success
+
+- **Performance:** Process a 300-page book in under 10 minutes
+- **Reliability:** >95% conversion success rate
+- **User Satisfaction:** <3 clicks to start conversion
+- **Code Quality:** 80%+ test coverage, 0 critical bugs
+- **Distribution:** Available on Homebrew and PyPI
+
+---
+
+## Notes
+
+- Industrial Moss theme is a differentiator - keep it!
+- Apple Silicon optimization is key selling point
+- Consider open-sourcing after Phase 4
+- Track metrics before/after each optimization
+
+---
+
+*This document should be reviewed monthly and updated based on priorities and feedback.*
