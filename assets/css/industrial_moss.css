@@ -387,7 +387,12 @@
     border-radius: var(--radius) !important;
 }
 
-/* Sidebar */
+/* ============================================
+   SIDEBAR - FIXED LAYOUT
+   Main content should slide with sidebar
+   ============================================ */
+
+/* Sidebar container */
 [data-testid="stSidebar"] {
     background-color: var(--bg-surface) !important;
     border-right: var(--border-thin) solid var(--border-color) !important;
@@ -395,6 +400,46 @@
 
 [data-testid="stSidebar"] .stMarkdown {
     font-family: var(--font-mono) !important;
+}
+
+/* Main content container - shift when sidebar is expanded */
+[data-testid="stAppViewContainer"] > section[data-testid="stSidebar"] + section {
+    margin-left: 0 !important;
+}
+
+/* Ensure main content is not covered by sidebar */
+section.main {
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+/* Sidebar collapse/expand behavior */
+[data-testid="stSidebarCollapsed"] + section {
+    margin-left: 0 !important;
+}
+
+/* Content wrapper - this shifts with sidebar */
+[data-testid="stAppViewContainer"] {
+    display: flex !important;
+    flex-direction: row !important;
+}
+
+/* Main content area */
+[data-testid="stAppViewContainer"] > .main {
+    flex: 1 !important;
+    max-width: calc(100% - 0px) !important;
+    transition: max-width 0.3s ease !important;
+}
+
+/* When sidebar is expanded */
+[data-testid="stSidebar"] ~ .main {
+    max-width: calc(100% - 260px) !important;
+}
+
+/* Sidebar content */
+[data-testid="stSidebar"] > div {
+    width: 260px !important;
+    background-color: var(--bg-surface) !important;
 }
 
 /* Tabs */
