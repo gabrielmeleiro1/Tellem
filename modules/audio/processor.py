@@ -3,6 +3,7 @@ Audio Processor Module
 ======================
 PyDub-based audio processing for chunk merging,
 volume normalization, and silence insertion.
+Integrates with buffer pool for efficient memory usage.
 """
 
 from __future__ import annotations
@@ -20,6 +21,13 @@ try:
     PYDUB_AVAILABLE = True
 except ImportError:
     PYDUB_AVAILABLE = False
+
+# Buffer pool integration
+try:
+    from modules.audio.buffer_pool import get_buffer_pool, PooledBuffer
+    BUFFER_POOL_AVAILABLE = True
+except ImportError:
+    BUFFER_POOL_AVAILABLE = False
 
 
 class AudioProcessor:
@@ -146,13 +154,21 @@ class AudioProcessor:
         """
         return self.add_silence(audio, pause_ms)
     
-    def from_numpy(self, audio_array: np.ndarray, sample_rate: int = None) -> AudioSegment:
+    def from_numpy(
+        self,
+        audio_array: np.ndarray,
+        sample_rate: int = None,
+        use_buffer_pool: bool = True
+    ) -> AudioSegment:
         """
         Convert numpy array to AudioSegment.
+        
+        Uses buffer pool for memory-efficient conversion when available.
         
         Args:
             audio_array: Audio as numpy array (float32, -1 to 1)
             sample_rate: Sample rate (uses default if None)
+            use_buffer_pool: Whether to use buffer pooling
             
         Returns:
             AudioSegment
@@ -161,7 +177,14 @@ class AudioProcessor:
         
         # Convert float32 to int16
         if audio_array.dtype == np.float32 or audio_array.dtype == np.float64:
-            audio_int16 = (audio_array * 32767).astype(np.int16)
+            if use_buffer_pool and BUFFER_POOL_AVAILABLE:
+                # Use pooled buffer for conversion
+                pooled_buf = get_buffer_pool().acquire(audio_array.shape, np.int16)
+                np.multiply(audio_array, 32767, out=pooled_buf.array, casting='unsafe')
+                audio_int16 = pooled_buf.array
+                # Note: pooled_buf will be released when it goes out of scope
+            else:
+                audio_int16 = (audio_array * 32767).astype(np.int16)
         else:
             audio_int16 = audio_array.astype(np.int16)
         
@@ -173,20 +196,50 @@ class AudioProcessor:
             channels=self.channels
         )
     
-    def to_numpy(self, audio: AudioSegment) -> np.ndarray:
+    def to_numpy(
+        self,
+        audio: AudioSegment,
+        use_buffer_pool: bool = True
+    ) -> np.ndarray:
         """
         Convert AudioSegment to numpy array.
         
+        Uses buffer pool for memory-efficient conversion when available.
+        
         Args:
             audio: Input AudioSegment
+            use_buffer_pool: Whether to use buffer pooling
             
         Returns:
             Audio as numpy array (float32, -1 to 1)
         """
         samples = np.array(audio.get_array_of_samples())
         
-        # Convert to float32 normalized
-        return samples.astype(np.float32) / 32768.0
+        if use_buffer_pool and BUFFER_POOL_AVAILABLE:
+            # Use pooled buffer for conversion
+            pooled_buf = get_buffer_pool().acquire(samples.shape, np.float32)
+            np.divide(samples, 32768.0, out=pooled_buf.array, casting='unsafe')
+            return pooled_buf.array
+        else:
+            # Convert to float32 normalized
+            return samples.astype(np.float32) / 32768.0
+    
+    def get_buffer_pool_stats(self) -> Optional[dict]:
+        """
+        Get buffer pool statistics if available.
+        
+        Returns:
+            Dictionary of stats or None if buffer pool not available
+        """
+        if BUFFER_POOL_AVAILABLE:
+            stats = get_buffer_pool().get_stats()
+            return {
+                'total_allocated': stats.total_allocated,
+                'total_reused': stats.total_reused,
+                'reuse_ratio': stats.reuse_ratio,
+                'current_pooled': stats.current_pooled,
+            }
+        return None
     
     def load(self, file_path: Path | str) -> AudioSegment:
         """
