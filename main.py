@@ -11,6 +11,9 @@ import streamlit as st
 import threading
 import time
 from pathlib import Path
+from queue import Queue
+from dataclasses import dataclass
+from typing import Optional, Any
 
 # Industrial Moss Theme
 from modules.ui.theme import apply_theme
@@ -120,6 +123,43 @@ if "active_pipeline" not in st.session_state:
 if "view" not in st.session_state:
     st.session_state.view = "upload"  # upload, library, checklist
 
+# Message queue for thread-safe communication
+if "message_queue" not in st.session_state:
+    st.session_state.message_queue = Queue()
+
+
+# ============================================
+# THREAD-SAFE MESSAGE TYPES
+# ============================================
+@dataclass
+class LogMessage:
+    """Message for log updates from background thread."""
+    message: str
+    msg_type: str = "info"
+
+@dataclass
+class ProgressMessage:
+    """Message for progress updates from background thread."""
+    stage: Any  # PipelineStage
+    chapter_idx: int
+    total_chapters: int
+    chunk_idx: int
+    total_chunks: int
+    message: str
+    eta: Optional[float] = None
+
+@dataclass
+class ModelStatusMessage:
+    """Message for model status updates."""
+    model_type: str  # "tts" or "cleaner"
+    is_loaded: bool
+
+@dataclass
+class ConversionCompleteMessage:
+    """Message sent when conversion completes."""
+    result: Any  # ConversionResult
+    error: Optional[str] = None
+
 
 # ============================================
 # BACKGROUND CONVERSION MONITOR
@@ -127,74 +167,31 @@ if "view" not in st.session_state:
 def check_conversion_status():
     """
     Check and update conversion status from background thread.
-    Call this at the start of each script run to update UI state.
+    Processes message queue and updates UI state.
+    Call this at the start of each script run.
     """
-    if not st.session_state.get("thread_running"):
-        return
+    # Process any pending messages from the background thread
+    process_message_queue()
     
-    # Thread is still running - check if we need to update anything
-    # The thread will set thread_running = False when complete
-    
-    # If thread has finished (thread_running was set to False by the thread)
+    # Check if thread has finished
     if st.session_state.conversion_thread and not st.session_state.conversion_thread.is_alive():
-        # Thread has completed
-        st.session_state.thread_running = False
-        st.session_state.active_pipeline = None
-        st.session_state.active_model = None
+        # Thread is dead but we may still have messages to process
+        process_message_queue()
         
-        # Check for errors
-        if st.session_state.thread_error:
-            st.session_state.status = "error"
-            add_log(f"conversion failed: {st.session_state.thread_error}")
-            from modules.ui.terminal import add_terminal_log
-            add_terminal_log(f"Conversion failed: {st.session_state.thread_error}", "error")
-        else:
-            # Get result
-            result = st.session_state.get("conversion_result")
-            if result and result.success:
-                st.session_state.status = "complete"
-                add_log(f"conversion complete: {result.output_path}")
-                from modules.ui.terminal import add_terminal_log
-                add_terminal_log("Conversion complete!", "success")
-                
-                # Save to Library Database
-                try:
-                    from modules.storage.database import Database
-                    db = Database()
-                    book_id = db.create_book(
-                        title=result.title,
-                        author=result.author,
-                        source_path=st.session_state.current_file,
-                        source_type=Path(st.session_state.current_file).suffix.lstrip(".").lower(),
-                        total_chapters=len(result.chapters),
-                    )
-                    for ch in result.chapters:
-                        db.create_chapter(
-                            book_id=book_id,
-                            chapter_number=ch.chapter_number,
-                            title=ch.chapter_title,
-                            duration_ms=ch.duration_ms,
-                            mp3_path=str(ch.mp3_path) if ch.mp3_path else None,
-                        )
-                    add_log("added to library")
-                except Exception as e:
-                    add_log(f"database error: {e}")
-            elif result and result.error == "Cancelled":
-                st.session_state.status = "cancelled"
-                add_log("conversion cancelled")
-            else:
-                st.session_state.status = "error"
-                error_msg = result.error if result else "unknown error"
-                add_log(f"conversion failed: {error_msg}")
-                from modules.ui.terminal import add_terminal_log
-                add_terminal_log(f"Conversion failed: {error_msg}", "error")
-        
-        # Clean up thread state
-        st.session_state.conversion_thread = None
+        # If thread_running is still True but thread is dead, we missed the completion message
+        if st.session_state.thread_running:
+            st.session_state.thread_running = False
+            st.session_state.active_pipeline = None
+            st.session_state.active_model = None
+            st.session_state.conversion_thread = None
 
 
 def add_log(message: str):
     """Add a message to the log window."""
+    # Ensure log_messages exists (thread-safe check)
+    if "log_messages" not in st.session_state:
+        st.session_state.log_messages = []
+    
     st.session_state.log_messages.append(message)
     # Keep only last 50 messages
     if len(st.session_state.log_messages) > 50:
@@ -204,18 +201,134 @@ def add_log(message: str):
 # ============================================
 # THREADING FOR BACKGROUND CONVERSION
 # ============================================
-def run_conversion_in_thread(pipeline, source_path):
+def run_conversion_in_thread(pipeline, source_path, message_queue: Queue):
     """
     Run the conversion pipeline in a background thread.
-    Stores result or error in session state.
+    Uses message_queue for thread-safe communication.
     """
     try:
         result = pipeline.convert(source_path)
-        st.session_state.conversion_result = result
-        st.session_state.thread_running = False
+        message_queue.put(ConversionCompleteMessage(result=result, error=None))
     except Exception as e:
-        st.session_state.thread_error = str(e)
-        st.session_state.thread_running = False
+        message_queue.put(ConversionCompleteMessage(result=None, error=str(e)))
+
+
+def process_message_queue():
+    """
+    Process all pending messages from the background thread.
+    Call this in the main thread to update UI state.
+    """
+    from modules.ui.terminal import add_terminal_log
+    from modules.ui.progress import (
+        update_chapter_progress,
+        set_current_stage,
+        ProcessingStage,
+        get_progress,
+    )
+    
+    queue = st.session_state.message_queue
+    
+    while not queue.empty():
+        msg = queue.get()
+        
+        if isinstance(msg, LogMessage):
+            add_log(msg.message)
+            if msg.msg_type != "info":
+                add_terminal_log(msg.message, msg.msg_type)
+        
+        elif isinstance(msg, ProgressMessage):
+            stage_map = {
+                "ingesting": ProcessingStage.PARSING,
+                "chunking": ProcessingStage.PARSING,
+                "cleaning": ProcessingStage.CLEANING,
+                "synthesizing": ProcessingStage.SYNTHESIZING,
+                "encoding": ProcessingStage.ENCODING,
+                "packaging": ProcessingStage.PACKAGING,
+                "complete": ProcessingStage.COMPLETE,
+                "error": ProcessingStage.ERROR,
+                "cancelled": ProcessingStage.CANCELLED,
+            }
+            ui_stage = stage_map.get(msg.stage.value, ProcessingStage.IDLE)
+            set_current_stage(ui_stage)
+            
+            if msg.stage.value in ("ingesting", "chunking"):
+                st.session_state.processing_stage = "parsing"
+            else:
+                st.session_state.processing_stage = msg.stage.value
+            
+            if msg.total_chapters > 0:
+                if msg.stage.value == "ingesting" and msg.chapter_idx < msg.total_chapters:
+                    progress = get_progress()
+                    if msg.chapter_idx < len(progress.chapters):
+                        progress.chapters[msg.chapter_idx].is_parsed = True
+                
+                update_chapter_progress(
+                    chapter_idx=msg.chapter_idx,
+                    completed_chunks=msg.chunk_idx,
+                    total_chunks=msg.total_chunks,
+                    stage=ui_stage,
+                )
+            
+            if msg.message:
+                add_log(msg.message)
+        
+        elif isinstance(msg, ModelStatusMessage):
+            if msg.model_type == "cleaner":
+                st.session_state.active_model = "cleaner" if msg.is_loaded else None
+                st.session_state.cleaner_model_loaded = msg.is_loaded
+            elif msg.model_type == "tts":
+                st.session_state.active_model = "tts" if msg.is_loaded else None
+                st.session_state.tts_model_loaded = msg.is_loaded
+        
+        elif isinstance(msg, ConversionCompleteMessage):
+            st.session_state.thread_running = False
+            st.session_state.active_pipeline = None
+            st.session_state.active_model = None
+            
+            if msg.error:
+                st.session_state.thread_error = msg.error
+                st.session_state.status = "error"
+                add_log(f"conversion failed: {msg.error}")
+                add_terminal_log(f"Conversion failed: {msg.error}", "error")
+            elif msg.result:
+                st.session_state.conversion_result = msg.result
+                if msg.result.success:
+                    st.session_state.status = "complete"
+                    add_log(f"conversion complete: {msg.result.output_path}")
+                    add_terminal_log("Conversion complete!", "success")
+                    
+                    # Save to Library Database
+                    try:
+                        from modules.storage.database import Database
+                        db = Database()
+                        book_id = db.create_book(
+                            title=msg.result.title,
+                            author=msg.result.author,
+                            source_path=st.session_state.current_file,
+                            source_type=Path(st.session_state.current_file).suffix.lstrip(".").lower(),
+                            total_chapters=len(msg.result.chapters),
+                        )
+                        for ch in msg.result.chapters:
+                            db.create_chapter(
+                                book_id=book_id,
+                                chapter_number=ch.chapter_number,
+                                title=ch.chapter_title,
+                                duration_ms=ch.duration_ms,
+                                mp3_path=str(ch.mp3_path) if ch.mp3_path else None,
+                            )
+                        add_log("added to library")
+                    except Exception as e:
+                        add_log(f"database error: {e}")
+                elif msg.result.error == "Cancelled":
+                    st.session_state.status = "cancelled"
+                    add_log("conversion cancelled")
+                else:
+                    st.session_state.status = "error"
+                    error_msg = msg.result.error or "unknown error"
+                    add_log(f"conversion failed: {error_msg}")
+                    add_terminal_log(f"Conversion failed: {error_msg}", "error")
+            
+            st.session_state.conversion_thread = None
 
 
 def start_conversion(uploaded_file, voice: str, speed: float):
@@ -226,12 +339,6 @@ def start_conversion(uploaded_file, voice: str, speed: float):
         ConversionPipeline,
         PipelineConfig,
     )
-    from modules.ui.progress import (
-        set_chapters,
-        update_chapter_progress,
-        set_current_stage,
-        ProcessingStage,
-    )
     from modules.ui.terminal import add_terminal_log
     from modules.ui.conversion import save_uploaded_file
     
@@ -240,65 +347,41 @@ def start_conversion(uploaded_file, voice: str, speed: float):
     st.session_state.conversion_cancelled = False
     st.session_state.thread_error = None
     st.session_state.conversion_result = None
+    st.session_state.message_queue = Queue()  # Reset queue
     
     add_log("starting conversion...")
     add_log(f"voice: {voice}, speed: {speed}x")
     add_terminal_log(f"Starting conversion with voice: {voice}", "process")
     
-    # Define verbose callback
+    # Get reference to message queue for thread callbacks
+    msg_queue = st.session_state.message_queue
+    
+    # Define verbose callback - puts messages in queue instead of direct session access
     def on_verbose(msg, msg_type):
-        add_terminal_log(msg, msg_type)
+        msg_queue.put(LogMessage(message=msg, msg_type=msg_type))
         
-        # Update active model based on log messages
-        if "text cleaner" in msg.lower() or "cleaner" in msg.lower():
-            st.session_state.active_model = "cleaner"
-            st.session_state.cleaner_model_loaded = True
-        elif "tts" in msg.lower() and "model" in msg.lower():
-            st.session_state.active_model = "tts"
-            st.session_state.tts_model_loaded = True
+        # Detect model loading/unloading from messages
+        if "text cleaner" in msg.lower() or "loading cleaner" in msg.lower():
+            msg_queue.put(ModelStatusMessage(model_type="cleaner", is_loaded=True))
+        elif "tts" in msg.lower() and "model" in msg.lower() and "loading" in msg.lower():
+            msg_queue.put(ModelStatusMessage(model_type="tts", is_loaded=True))
         elif "unloaded" in msg.lower():
             if "cleaner" in msg.lower():
-                st.session_state.cleaner_model_loaded = False
+                msg_queue.put(ModelStatusMessage(model_type="cleaner", is_loaded=False))
             elif "tts" in msg.lower():
-                st.session_state.tts_model_loaded = False
+                msg_queue.put(ModelStatusMessage(model_type="tts", is_loaded=False))
     
-    # Progress callback
+    # Progress callback - puts messages in queue
     def on_progress(stage, chapter_idx, total_chapters, chunk_idx, total_chunks, message, eta):
-        stage_map = {
-            "ingesting": ProcessingStage.PARSING,
-            "chunking": ProcessingStage.PARSING,
-            "cleaning": ProcessingStage.CLEANING,
-            "synthesizing": ProcessingStage.SYNTHESIZING,
-            "encoding": ProcessingStage.ENCODING,
-            "packaging": ProcessingStage.PACKAGING,
-            "complete": ProcessingStage.COMPLETE,
-            "error": ProcessingStage.ERROR,
-            "cancelled": ProcessingStage.CANCELLED,
-        }
-        ui_stage = stage_map.get(stage.value, ProcessingStage.IDLE)
-        set_current_stage(ui_stage)
-        
-        if stage.value in ("ingesting", "chunking"):
-            st.session_state.processing_stage = "parsing"
-        else:
-            st.session_state.processing_stage = stage.value
-        
-        if total_chapters > 0:
-            if stage.value == "ingesting" and chapter_idx < total_chapters:
-                from modules.ui.progress import get_progress
-                progress = get_progress()
-                if chapter_idx < len(progress.chapters):
-                    progress.chapters[chapter_idx].is_parsed = True
-            
-            update_chapter_progress(
-                chapter_idx=chapter_idx,
-                completed_chunks=chunk_idx,
-                total_chunks=total_chunks,
-                stage=ui_stage,
-            )
-        
-        if message:
-            add_log(message)
+        msg_queue.put(ProgressMessage(
+            stage=stage,
+            chapter_idx=chapter_idx,
+            total_chapters=total_chapters,
+            chunk_idx=chunk_idx,
+            total_chunks=total_chunks,
+            message=message,
+            eta=eta,
+        ))
     
     # Save file and create pipeline
     source_path = save_uploaded_file(uploaded_file, uploaded_file.name)
@@ -323,11 +406,12 @@ def start_conversion(uploaded_file, voice: str, speed: float):
     st.session_state.thread_running = True
     conversion_thread = threading.Thread(
         target=run_conversion_in_thread,
-        args=(pipeline, source_path),
+        args=(pipeline, source_path, msg_queue),
         daemon=True,
     )
     conversion_thread.start()
     st.session_state.conversion_thread = conversion_thread
+    st.session_state.thread_running = True
     
     add_log("conversion started in background thread")
     add_terminal_log("Conversion running in background...", "process")
