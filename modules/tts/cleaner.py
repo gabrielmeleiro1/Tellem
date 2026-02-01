@@ -3,12 +3,15 @@ Text Cleaner Module
 ===================
 LLM-based text normalization for improved TTS output.
 Uses MLX-LM for efficient local inference on Apple Silicon.
+Supports model caching between chunks for improved performance.
 """
 
 import gc
 import re
+import threading
 from dataclasses import dataclass
 from typing import Optional
+from functools import lru_cache
 
 # MLX imports - lazy loaded
 try:
@@ -28,6 +31,7 @@ class CleanerConfig:
     max_tokens: int = 2048
     temperature: float = 0.1
     batch_size: int = 1
+    cache_model: bool = True  # Keep model cached between chunks
 
 
 # Prompt template for text normalization
@@ -52,6 +56,38 @@ Text to clean:
 Cleaned text:"""
 
 
+# Global cleaner model cache
+_cleaner_model_cache: dict[str, tuple[any, any]] = {}
+_cleaner_cache_lock = threading.RLock()
+
+
+def _get_cached_cleaner(model_name: str) -> Optional[tuple[any, any]]:
+    """Get cleaner model from cache if available."""
+    with _cleaner_cache_lock:
+        return _cleaner_model_cache.get(model_name)
+
+
+def _set_cached_cleaner(model_name: str, model: any, tokenizer: any):
+    """Cache cleaner model."""
+    with _cleaner_cache_lock:
+        # Limit to 1 cleaner model in cache
+        _cleaner_model_cache.clear()
+        _cleaner_model_cache[model_name] = (model, tokenizer)
+
+
+def _clear_cleaner_cache():
+    """Clear the cleaner model cache."""
+    with _cleaner_cache_lock:
+        _cleaner_model_cache.clear()
+        gc.collect()
+        if MLX_LM_AVAILABLE:
+            try:
+                mx.clear_cache()
+            except Exception:
+                pass
+        gc.collect()
+
+
 class TextCleaner:
     """
     LLM-based text cleaner for TTS preprocessing.
@@ -60,6 +96,8 @@ class TextCleaner:
     - Expands abbreviations
     - Converts numbers to words
     - Fixes formatting issues
+    
+    Supports model caching between chunks for improved performance.
     """
     
     def __init__(self, config: Optional[CleanerConfig] = None):
@@ -79,16 +117,37 @@ class TextCleaner:
         self._tokenizer = None
         self._loaded = False
         self._manager = VRAMManager()
+        self._model_lock = threading.RLock()
+        
+        # Track statistics
+        self._total_chunks_cleaned = 0
+        self._total_time_ms = 0
     
     @property
     def is_loaded(self) -> bool:
         """Check if model is currently loaded."""
         return self._loaded
     
+    @property
+    def average_chunk_time_ms(self) -> float:
+        """Get average time per chunk in milliseconds."""
+        if self._total_chunks_cleaned == 0:
+            return 0.0
+        return self._total_time_ms / self._total_chunks_cleaned
+    
     def load(self) -> None:
         """Load the LLM model into memory."""
         if self._loaded:
             return
+        
+        # Try to load from cache first
+        if self.config.cache_model:
+            cached = _get_cached_cleaner(self.config.model_name)
+            if cached is not None:
+                self._model, self._tokenizer = cached
+                self._loaded = True
+                print(f"Text cleaner loaded from cache: {self.config.model_name}")
+                return
         
         # Ensure no other model is loaded
         self._manager.ensure_can_load("text-cleaner")
@@ -96,6 +155,10 @@ class TextCleaner:
         print(f"Loading text cleaner: {self.config.model_name}")
         self._model, self._tokenizer = load(self.config.model_name)
         self._loaded = True
+        
+        # Cache the model if requested
+        if self.config.cache_model:
+            _set_cached_cleaner(self.config.model_name, self._model, self._tokenizer)
         
         # Register with VRAM manager
         self._manager.register_model("text-cleaner", self.unload)
@@ -111,6 +174,10 @@ class TextCleaner:
         Returns:
             Cleaned text ready for TTS
         """
+        import time
+        
+        start_time = time.time()
+        
         if not text.strip():
             return ""
         
@@ -122,27 +189,37 @@ class TextCleaner:
         
         # For short texts, rule-based may be sufficient
         if len(text) < 50 and not self._needs_llm_cleaning(text):
+            self._total_chunks_cleaned += 1
+            self._total_time_ms += (time.time() - start_time) * 1000
             return text
         
         # Use LLM for more complex cleaning
         prompt = CLEANER_PROMPT_TEMPLATE.format(text=text)
         
         try:
-            response = generate(
-                self._model,
-                self._tokenizer,
-                prompt=prompt,
-                max_tokens=self.config.max_tokens,
-                temp=self.config.temperature,
-                verbose=False
-            )
+            with self._model_lock:
+                response = generate(
+                    self._model,
+                    self._tokenizer,
+                    prompt=prompt,
+                    max_tokens=self.config.max_tokens,
+                    temp=self.config.temperature,
+                    verbose=False
+                )
             
             # Extract just the cleaned text (remove any extra commentary)
             cleaned = self._extract_result(response)
+            
+            # Update statistics
+            self._total_chunks_cleaned += 1
+            self._total_time_ms += (time.time() - start_time) * 1000
+            
             return cleaned if cleaned else text
             
         except Exception as e:
             print(f"LLM cleaning failed: {e}, using rule-based fallback")
+            self._total_chunks_cleaned += 1
+            self._total_time_ms += (time.time() - start_time) * 1000
             return text
     
     def _rule_based_clean(self, text: str) -> str:
@@ -222,18 +299,31 @@ class TextCleaner:
         
         return result
     
-    def unload(self) -> None:
-        """Unload the model and free memory."""
+    def unload(self, keep_in_cache: bool = True) -> None:
+        """
+        Unload the model and free memory.
+        
+        Args:
+            keep_in_cache: If True, model stays in global cache for reuse
+        """
         if not self._loaded:
             return
         
+        # Model is already in cache if caching was enabled
         self._model = None
         self._tokenizer = None
         self._loaded = False
         
-        # Clear memory
-        clear_vram()
-        print("Text cleaner unloaded, memory freed")
+        # Only clear memory if not keeping in cache
+        if not keep_in_cache:
+            _clear_cleaner_cache()
+        
+        print(f"Text cleaner unloaded (cached: {keep_in_cache})")
+    
+    def clear_cache(self) -> None:
+        """Clear the global cleaner model cache."""
+        _clear_cleaner_cache()
+        print("Cleaner model cache cleared")
     
     def __enter__(self):
         """Context manager entry."""
@@ -242,7 +332,7 @@ class TextCleaner:
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit - ensures cleanup."""
-        self.unload()
+        self.unload(keep_in_cache=self.config.cache_model)
         return False
 
 
