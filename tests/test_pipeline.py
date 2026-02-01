@@ -46,11 +46,17 @@ class TestConversionPipeline:
             
             mock_enc.return_value.get_duration.return_value = 10.0 # 10 seconds
             
+            # Make encoder.wav_to_mp3 actually create the file
+            def wav_to_mp3_side_effect(wav_path, output_path, bitrate="128k"):
+                Path(output_path).write_bytes(b"fake mp3 content")
+            mock_enc.return_value.wav_to_mp3.side_effect = wav_to_mp3_side_effect
+            
             yield {
                 "pdf": mock_pdf,
                 "cleaner": mock_cleaner,
                 "chunker": mock_chunker,
-                "tts": mock_tts
+                "tts": mock_tts,
+                "encoder": mock_enc,
             }
 
     def test_pipeline_execution_success(self, mock_components, tmp_path):
@@ -60,9 +66,12 @@ class TestConversionPipeline:
         )
         pipeline = ConversionPipeline(config)
         
-        with patch("pathlib.Path.exists", return_value=True), \
-             patch("soundfile.write") as mock_sf_write:
-            result = pipeline.convert(Path("test.pdf"))
+        # Create a dummy test file
+        test_file = tmp_path / "test.pdf"
+        test_file.write_text("dummy pdf content")
+        
+        with patch("soundfile.write") as mock_sf_write:
+            result = pipeline.convert(test_file)
         
         if not result.success:
             print(f"Pipeline failed with error: {result.error}")
@@ -78,6 +87,10 @@ class TestConversionPipeline:
         )
         pipeline = ConversionPipeline(config)
         
+        # Create a dummy test file
+        test_file = tmp_path / "test.pdf"
+        test_file.write_text("dummy pdf content")
+        
         # We need to trigger cancellation DURING processing
         # Use chunker side effect to cancel
         def cancel_side_effect(*args, **kwargs):
@@ -87,10 +100,45 @@ class TestConversionPipeline:
         mock_components["chunker"].return_value.chunk.side_effect = cancel_side_effect
         mock_components["chunker"].chunk_text.side_effect = cancel_side_effect
         
-        with patch("pathlib.Path.exists", return_value=True), \
-             patch("soundfile.write"):
-            result = pipeline.convert(Path("test.pdf"))
+        with patch("soundfile.write"):
+            result = pipeline.convert(test_file)
             
         assert not result.success
         assert "Cancelled" in str(result.error)
+
+    def test_persistence_files_created(self, mock_components, tmp_path):
+        """Verify that source.md and chapter_XX_cleaned.md files are created."""
+        config = PipelineConfig(
+            output_dir=tmp_path / "output",
+            temp_dir=tmp_path / "temp"
+        )
+        pipeline = ConversionPipeline(config)
+        
+        # Create a dummy test file
+        test_file = tmp_path / "test.pdf"
+        test_file.write_text("dummy pdf content")
+        
+        with patch("soundfile.write") as mock_sf_write:
+            result = pipeline.convert(test_file)
+        
+        assert result.success
+        
+        # Check that source.md was created
+        book_output_dir = tmp_path / "output" / "Test Book"
+        source_md = book_output_dir / "source.md"
+        assert source_md.exists(), f"source.md should be created at {source_md}"
+        
+        # Check that chapter_XX_cleaned.md was created
+        chapters_dir = book_output_dir / "chapters"
+        chapter_cleaned = chapters_dir / "chapter_01_cleaned.md"
+        assert chapter_cleaned.exists(), f"chapter_01_cleaned.md should be created at {chapter_cleaned}"
+        
+        # Verify content of source.md
+        source_content = source_md.read_text(encoding="utf-8")
+        assert "# Test Book" in source_content
+        
+        # Verify content of chapter cleaned file
+        chapter_content = chapter_cleaned.read_text(encoding="utf-8")
+        assert "# Chapter 1" in chapter_content
+        assert "chunk1" in chapter_content  # The cleaned chunk content
 
