@@ -40,6 +40,16 @@ ENV/
 *~
 .DS_Store
 
+
+# Images
+screenshots/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.webp
+
 # Project Specific
 cache/
 output/

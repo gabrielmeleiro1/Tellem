@@ -31,9 +31,10 @@ def add_terminal_log(message: str, type: str = "info"):
     }
     st.session_state.terminal_logs.append(entry)
     
-    # Keep buffer limited
-    if len(st.session_state.terminal_logs) > 200:
-        st.session_state.terminal_logs = st.session_state.terminal_logs[-200:]
+    # Keep buffer limited to 100 entries (optimized from 200)
+    MAX_LOG_BUFFER = 100
+    if len(st.session_state.terminal_logs) > MAX_LOG_BUFFER:
+        st.session_state.terminal_logs = st.session_state.terminal_logs[-MAX_LOG_BUFFER:]
 
 def render_terminal_view(_placeholder=None):
     """

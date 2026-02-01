@@ -1,0 +1,259 @@
+/* ============================================
+   AUDIOBOOK CREATOR - BRUTALIST THEME
+   Raw, High-Contrast, geometric, functionality-first
+   ============================================ */
+
+/* Import Space Mono for that raw functional look */
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
+:root {
+    /* Brutalist Palette */
+    --bg-core: #101010;
+    --bg-surface: #1A1A1A;
+    --bg-elevated: #222222;
+
+    --border-color: #404040;
+    --border-focus: #FFFFFF;
+
+    --text-main: #E0E0E0;
+    --text-dim: #888888;
+
+    --accent: #FF4400;
+    /* International Orange */
+    --success: #00FF41;
+    /* Terminal Green */
+    --warning: #FFBF00;
+    --error: #FF0033;
+    /* Hard Red */
+
+    /* Spacing & Borders */
+    --radius: 0px;
+    /* Brutalist = No curves */
+    --border-width: 1px;
+    --border-thick: 2px;
+
+    /* Typography */
+    --font-mono: 'Space Mono', 'Courier New', monospace;
+}
+
+/* ============================================
+   BASE RESET
+   ============================================ */
+html,
+body,
+[data-testid="stAppViewContainer"] {
+    background-color: var(--bg-core) !important;
+    color: var(--text-main) !important;
+    font-family: var(--font-mono) !important;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-mono) !important;
+    text-transform: uppercase !important;
+    letter-spacing: -0.02em !important;
+    color: var(--text-main) !important;
+}
+
+h1 {
+    border-bottom: 2px solid var(--text-main);
+    /* Thinner border */
+    padding-bottom: 15px;
+    margin-bottom: 20px !important;
+    font-weight: 700 !important;
+    font-size: 28px !important;
+    /* Smaller than before */
+    line-height: 1.2 !important;
+}
+
+h3 {
+    border-left: 3px solid var(--accent);
+    padding-left: 8px;
+    color: var(--text-main) !important;
+    background: var(--bg-surface);
+    padding: 4px 8px;
+    margin-top: 20px !important;
+    font-size: 14px !important;
+    /* Much smaller to prevent wrapping */
+    white-space: nowrap;
+    /* Prevent "[ ]" from breaking */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+    /* Hug content */
+    width: auto;
+    max-width: 100%;
+}
+
+/* ============================================
+   COMPONENTS
+   ============================================ */
+
+/* Buttons */
+.stButton>button {
+    background-color: transparent !important;
+    color: var(--text-main) !important;
+    border: var(--border-thick) solid var(--text-main) !important;
+    border-radius: var(--radius) !important;
+    text-transform: uppercase !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    /* Smaller text */
+    padding: 6px 16px !important;
+    transition: all 0.1s ease !important;
+    box-shadow: 4px 4px 0px 0px var(--bg-surface) !important;
+}
+
+.stButton>button:hover {
+    background-color: var(--text-main) !important;
+    color: var(--bg-core) !important;
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px 0px var(--accent) !important;
+}
+
+.stButton>button:active {
+    transform: translate(0px, 0px);
+    box-shadow: 0px 0px 0px 0px transparent !important;
+}
+
+/* Primary Button */
+.stButton>button[kind="primary"] {
+    background-color: var(--text-main) !important;
+    color: var(--bg-core) !important;
+    border-color: var(--text-main) !important;
+}
+
+.stButton>button[kind="primary"]:hover {
+    background-color: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: var(--text-main) !important;
+    box-shadow: 6px 6px 0px 0px var(--text-main) !important;
+}
+
+/* Inputs */
+.stTextInput>div>div>input {
+    background-color: var(--bg-core) !important;
+    border: var(--border-width) solid var(--border-color) !important;
+    border-radius: var(--radius) !important;
+    color: var(--text-main) !important;
+    font-family: var(--font-mono) !important;
+}
+
+.stTextInput>div>div>input:focus {
+    border-color: var(--accent) !important;
+    outline: 2px solid var(--accent) !important;
+    outline-offset: -2px !important;
+}
+
+/* Select Box */
+[data-testid="stSelectbox"]>div>div {
+    background-color: var(--bg-core) !important;
+    border: var(--border-width) solid var(--border-color) !important;
+    border-radius: var(--radius) !important;
+    color: var(--text-main) !important;
+}
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+    background-color: var(--bg-surface) !important;
+    border-right: 2px solid var(--border-color) !important;
+}
+
+/* Progress Bar */
+.stProgress>div>div {
+    height: 12px !important;
+    background-color: var(--bg-elevated) !important;
+    border-radius: var(--radius) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+.stProgress>div>div>div {
+    background-color: var(--accent) !important;
+}
+
+/* Slider */
+.stSlider>div>div>div {
+    background-color: var(--accent) !important;
+}
+
+.stSlider>div>div>div>div {
+    /* Thumb */
+    border-radius: 0 !important;
+    background-color: var(--text-main) !important;
+    border: 2px solid var(--bg-core) !important;
+}
+
+/* Expander */
+[data-testid="stExpander"] {
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--radius) !important;
+    background-color: transparent !important;
+}
+
+/* Metrics */
+[data-testid="stMetricValue"] {
+    font-family: var(--font-mono) !important;
+    font-weight: 700 !important;
+}
+
+/* File Uploader */
+[data-testid="stFileUploader"] {
+    border: 2px dashed var(--border-color) !important;
+    border-radius: var(--radius) !important;
+    background-color: rgba(255, 255, 255, 0.02) !important;
+    transition: all 0.2s;
+}
+
+[data-testid="stFileUploader"]:hover {
+    border-color: var(--accent) !important;
+    border-style: solid !important;
+    background-color: rgba(255, 68, 0, 0.05) !important;
+}
+
+/* Tabs */
+[data-testid="stTabs"] button {
+    border-radius: 0 !important;
+    text-transform: uppercase !important;
+    font-weight: 700 !important;
+    border: 1px solid transparent !important;
+}
+
+[data-testid="stTabs"] button[aria-selected="true"] {
+    background-color: var(--bg-elevated) !important;
+    border: 1px solid var(--border-color) !important;
+    border-bottom: none !important;
+    color: var(--accent) !important;
+}
+
+/* Custom Classes */
+.log-window {
+    border: 1px solid var(--border-color);
+    background: #000;
+    font-family: var(--font-mono);
+    padding: 10px;
+    border-left: 4px solid var(--text-dim);
+}
+
+.header-strip {
+    border-bottom: 2px solid var(--border-color);
+    background: var(--bg-surface);
+    padding: 10px;
+    margin-bottom: 20px;
+}
+
+/* Hide Streamlit Anchor Links */
+.stMarkdown a[href^="#"],
+[data-testid="stHeaderActionElements"],
+a.anchor-link,
+.header-anchor {
+    display: none !important;
+    visibility: hidden !important;
+}

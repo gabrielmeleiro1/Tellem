@@ -90,10 +90,10 @@ def main():
     
     # Exit code
     if failed_count > 0:
-        print("❌ TESTS FAILED - Do not commit!")
+        print("TESTS FAILED - Do not commit!")
         return 1
     else:
-        print("✅ ALL TESTS PASSED - Safe to commit")
+        print("ALL TESTS PASSED - Safe to commit")
         return 0
 
 

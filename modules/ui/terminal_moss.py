@@ -6,7 +6,7 @@ Restyled terminal view matching the Industrial Moss aesthetic.
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Generator
 from enum import Enum
 import streamlit as st
 
@@ -28,6 +28,9 @@ class LogEntry:
     message: str
     source: Optional[str] = None  # Module/component source
 
+
+# Configuration for log buffer
+MAX_LOG_BUFFER_SIZE = 100  # Maximum entries to keep in buffer
 
 # Global buffer for terminal logs (per-session via session_state)
 def _init_terminal_state():
@@ -59,9 +62,9 @@ def add_log(
     )
     st.session_state.moss_terminal_logs.append(entry)
     
-    # Keep buffer limited to 500 entries
-    if len(st.session_state.moss_terminal_logs) > 500:
-        st.session_state.moss_terminal_logs = st.session_state.moss_terminal_logs[-500:]
+    # Keep buffer limited to MAX_LOG_BUFFER_SIZE entries (optimized from 500)
+    if len(st.session_state.moss_terminal_logs) > MAX_LOG_BUFFER_SIZE:
+        st.session_state.moss_terminal_logs = st.session_state.moss_terminal_logs[-MAX_LOG_BUFFER_SIZE:]
 
 
 def add_debug(message: str, source: Optional[str] = None) -> None:
@@ -99,6 +102,128 @@ def get_logs() -> List[LogEntry]:
     """Get all log entries."""
     _init_terminal_state()
     return st.session_state.moss_terminal_logs
+
+
+def get_logs_generator(
+    min_level: Optional[LogLevel] = None,
+    source_filter: Optional[str] = None
+) -> Generator[LogEntry, None, None]:
+    """
+    Generator for streaming log entries with optional filtering.
+    
+    Args:
+        min_level: Minimum log level to include (e.g., LogLevel.WARNING)
+        source_filter: Only include logs from this source
+    
+    Yields:
+        LogEntry objects matching the filter criteria
+    
+    Example:
+        # Stream only warnings and errors
+        for entry in get_logs_generator(min_level=LogLevel.WARNING):
+            process_log(entry)
+        
+        # Stream logs from specific source
+        for entry in get_logs_generator(source_filter="TTS"):
+            process_log(entry)
+    """
+    _init_terminal_state()
+    
+    level_priority = {
+        LogLevel.DEBUG: 0,
+        LogLevel.INFO: 1,
+        LogLevel.PROCESS: 2,
+        LogLevel.WARNING: 3,
+        LogLevel.ERROR: 4,
+    }
+    
+    min_priority = level_priority.get(min_level, 0) if min_level else 0
+    
+    for entry in st.session_state.moss_terminal_logs:
+        # Filter by level
+        if min_level and level_priority.get(entry.level, 0) < min_priority:
+            continue
+        
+        # Filter by source
+        if source_filter and entry.source != source_filter:
+            continue
+        
+        yield entry
+
+
+def stream_logs_batch(
+    batch_size: int = 10,
+    min_level: Optional[LogLevel] = None
+) -> Generator[List[LogEntry], None, None]:
+    """
+    Generator that yields logs in batches for efficient processing.
+    
+    Args:
+        batch_size: Number of logs per batch
+        min_level: Minimum log level to include
+    
+    Yields:
+        Batches of LogEntry objects
+    
+    Example:
+        # Process logs in batches of 50
+        for batch in stream_logs_batch(batch_size=50, min_level=LogLevel.INFO):
+            save_to_database(batch)
+    """
+    batch: List[LogEntry] = []
+    
+    for entry in get_logs_generator(min_level=min_level):
+        batch.append(entry)
+        
+        if len(batch) >= batch_size:
+            yield batch
+            batch = []
+    
+    # Yield any remaining entries
+    if batch:
+        yield batch
+
+
+def add_log_filtered(
+    message: str,
+    level: LogLevel = LogLevel.INFO,
+    source: Optional[str] = None,
+    min_buffer_level: LogLevel = LogLevel.DEBUG
+) -> bool:
+    """
+    Add a log entry with level filtering before buffer storage.
+    
+    Args:
+        message: Log message content
+        level: Log level for styling
+        source: Optional component source
+        min_buffer_level: Minimum level to store in buffer (lower levels are dropped)
+    
+    Returns:
+        True if log was added, False if filtered out
+    
+    Example:
+        # Only store INFO and above in buffer (exclude DEBUG)
+        added = add_log_filtered("Debug info", LogLevel.DEBUG, min_buffer_level=LogLevel.INFO)
+        # added will be False, log is not stored
+    """
+    level_priority = {
+        LogLevel.DEBUG: 0,
+        LogLevel.INFO: 1,
+        LogLevel.PROCESS: 2,
+        LogLevel.WARNING: 3,
+        LogLevel.ERROR: 4,
+    }
+    
+    entry_priority = level_priority.get(level, 1)
+    min_priority = level_priority.get(min_buffer_level, 0)
+    
+    # Filter out logs below the minimum buffer level
+    if entry_priority < min_priority:
+        return False
+    
+    add_log(message, level, source)
+    return True
 
 
 def render_industrial_terminal(

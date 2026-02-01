@@ -78,10 +78,7 @@
   - Industrial Moss is great, but users may want choice
   - Store preference in localStorage
   
-- [ ] **Responsive layout for mobile**
-  - Current grid layout breaks on <768px width
-  - Stack columns vertically on mobile
-  - Enable touch-friendly controls
+
 
 ### 2.2 UI Component Library
 - [ ] **Extract reusable components**
@@ -123,22 +120,6 @@
 ---
 
 ## 3. Architecture & Refactoring
-
-### 3.1 Code Organization
-- [ ] **Move business logic out of UI layer**
-  - `main.py` is bloated (748 lines)
-  - Create `Application` or `AppController` class
-  - UI layer should only handle presentation
-  
-- [ ] **Implement Repository Pattern**
-  - Abstract storage behind interfaces
-  - Enables SQLite → PostgreSQL migration later
-  - File: [`modules/storage/database.py`](modules/storage/database.py)
-  
-- [ ] **Refactor pipeline to use Strategy Pattern**
-  - Separate TTS engines (Kokoro, Orpheus, future) as strategies
-  - Cleaner selection of processing approach
-
 ### 3.2 Configuration Management
 - [ ] **Implement hierarchical config**
   - Config file → Environment variables → CLI args → UI settings
@@ -379,27 +360,8 @@
 
 ---
 
-## 9. Quick Wins (High Priority)
 
-These can be implemented immediately with high impact:
 
-### 9.1 Immediate Fixes
-- [ ] **Fix: Update `requirements.txt`**
-  - Pin exact versions to avoid breakage
-  - Add `mlx-audio` (currently commented out)
-  - Add `colorama` for Windows terminal colors
-  
-- [ ] **Fix: Add output directory to `.gitignore`**
-  - Currently generated files show in git status
-  
-- [ ] **Fix: Handle missing FFmpeg gracefully**
-  - Show helpful error message with install instructions
-  - Current: RuntimeError with stack trace
-
-### 9.2 Quick Features
-- [ ] **Add: Keyboard shortcut for common actions**
-  - Ctrl+Enter to start conversion
-  - Escape to cancel
   
 - [ ] **Add: Progress persistence**
   - Write progress to JSON file
