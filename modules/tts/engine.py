@@ -4,6 +4,7 @@ TTS Engine Module
 Kokoro-82M TTS engine via mlx-audio framework.
 Optimized for Apple Silicon with 4-bit quantization.
 Supports batch inference for ~3x throughput improvement.
+Integrates with VRAM monitoring for dynamic batch sizing.
 """
 
 import gc
@@ -17,6 +18,13 @@ from functools import lru_cache
 import numpy as np
 
 from modules.errors import TTSModelError, SynthesisError, VRAMOverflowError
+
+# Import VRAM monitoring
+try:
+    from modules.tts.vram_monitor import VRAMMonitor, get_memory_manager
+    VRAM_MONITOR_AVAILABLE = True
+except ImportError:
+    VRAM_MONITOR_AVAILABLE = False
 
 # MLX imports - lazy loaded to avoid import errors if not installed
 try:
@@ -101,6 +109,7 @@ class TTSEngine:
     Uses mlx-audio for GPU-accelerated inference on Apple Silicon.
     Supports 4-bit and 8-bit quantization for memory efficiency.
     Optimized with batch inference for ~3x throughput improvement.
+    Integrates with VRAM monitoring for dynamic batch sizing.
     """
     
     def __init__(self, config: Optional[TTSConfig] = None):
@@ -129,6 +138,11 @@ class TTSEngine:
         # Track synthesis statistics
         self._total_chunks_processed = 0
         self._total_time_ms = 0
+        
+        # VRAM monitoring integration
+        self._memory_manager = None
+        if VRAM_MONITOR_AVAILABLE:
+            self._memory_manager = get_memory_manager()
     
     def _get_model_path(self) -> str:
         """Get the model path based on quantization setting."""
@@ -341,7 +355,8 @@ class TTSEngine:
         """
         Synthesize multiple text chunks in parallel (batch processing).
         
-        Processes items in batches of config.batch_size for ~3x throughput.
+        Processes items in batches with dynamic sizing based on VRAM usage
+        for ~3x throughput improvement while preventing OOM errors.
         
         Args:
             items: List of BatchItem to synthesize
@@ -353,12 +368,22 @@ class TTSEngine:
         if not items:
             return []
         
+        # Record activity for idle timeout management
+        if self._memory_manager:
+            self._memory_manager.record_activity()
+        
         results: dict[int, BatchResult] = {}
         total = len(items)
         completed = 0
         
-        # Process in batches
-        batch_size = self.config.batch_size if self.config.use_batching else 1
+        # Determine batch size - use dynamic sizing if available
+        if self.config.use_batching and self._memory_manager:
+            # Get VRAM-aware dynamic batch size
+            batch_size = self._memory_manager.get_tts_batch_size()
+        elif self.config.use_batching:
+            batch_size = self.config.batch_size
+        else:
+            batch_size = 1
         
         for batch_start in range(0, total, batch_size):
             batch_end = min(batch_start + batch_size, total)
@@ -492,6 +517,25 @@ class TTSEngine:
             gc.collect()
         
         print(f"TTS Engine unloaded (cached: {keep_in_cache})")
+    
+    def register_for_idle_timeout(self, timeout_seconds: float = 300.0) -> None:
+        """
+        Register this engine for automatic idle timeout unloading.
+        
+        The model will be automatically unloaded after the specified
+        idle time to free VRAM.
+        
+        Args:
+            timeout_seconds: Idle time before unload (default 5 minutes)
+        """
+        if self._memory_manager:
+            self._memory_manager.register_for_idle_timeout(
+                "tts_engine",
+                lambda: self.unload_model(keep_in_cache=True)
+            )
+            # Ensure monitoring is started
+            self._memory_manager.start()
+            print(f"TTS Engine registered for idle timeout ({timeout_seconds}s)")
     
     def clear_cache(self) -> None:
         """Clear the global model cache and free memory."""
