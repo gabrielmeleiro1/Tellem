@@ -8,23 +8,28 @@ struct ContentView: View {
             Sidebar(selectedView: $appState.selectedView)
                 .frame(minWidth: 200)
         } detail: {
-            Group {
-                switch appState.selectedView {
-                case .convert:
-                    ConversionView()
-                        .environmentObject(appState.conversionViewModel)
-                case .library:
-                    LibraryView()
-                case .player:
-                    PlayerView()
-                case .models:
-                    ModelsView()
-                case .settings:
-                    SettingsView()
+            ZStack {
+                Color.mossCore
+                    .ignoresSafeArea()
+                
+                Group {
+                    switch appState.selectedView {
+                    case .convert:
+                        ConversionView()
+                            .environmentObject(appState.conversionViewModel)
+                    case .library:
+                        LibraryView()
+                    case .player:
+                        PlayerView()
+                    case .models:
+                        ModelsView()
+                    case .settings:
+                        SettingsView()
+                    }
                 }
             }
         }
-        .background(Color.mossCore)
+        .navigationSplitViewStyle(.balanced)
     }
 }
 
@@ -66,28 +71,44 @@ struct Sidebar: View {
 
 struct LibraryView: View {
     var body: some View {
-        Text("Library View")
-            .foregroundColor(.mossTextMain)
+        ZStack {
+            Color.mossCore.ignoresSafeArea()
+            Text("Library View")
+                .foregroundColor(.mossTextMain)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
 struct PlayerView: View {
     var body: some View {
-        Text("Player View")
-            .foregroundColor(.mossTextMain)
+        ZStack {
+            Color.mossCore.ignoresSafeArea()
+            Text("Player View")
+                .foregroundColor(.mossTextMain)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
 struct ModelsView: View {
     var body: some View {
-        Text("Models View")
-            .foregroundColor(.mossTextMain)
+        ZStack {
+            Color.mossCore.ignoresSafeArea()
+            Text("Models View")
+                .foregroundColor(.mossTextMain)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
 struct SettingsView: View {
     var body: some View {
-        Text("Settings View")
-            .foregroundColor(.mossTextMain)
+        ZStack {
+            Color.mossCore.ignoresSafeArea()
+            Text("Settings View")
+                .foregroundColor(.mossTextMain)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
