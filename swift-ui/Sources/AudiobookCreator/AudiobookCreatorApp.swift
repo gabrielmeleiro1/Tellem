@@ -98,16 +98,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     /// Configure window appearance and behavior
+    @MainActor
     private func configureWindow(_ window: NSWindow) {
         window.titlebarAppearsTransparent = false
         window.titleVisibility = .visible
         window.isReleasedWhenClosed = false
         window.setContentSize(NSSize(width: 1400, height: 900))
         window.center()
-        
-        // Ensure window can become key and main
-        window.canBecomeKey = true
-        window.canBecomeMain = true
         
         // Set window level to normal (not floating)
         window.level = .normal
