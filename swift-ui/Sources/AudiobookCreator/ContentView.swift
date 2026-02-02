@@ -12,6 +12,7 @@ struct ContentView: View {
                 switch appState.selectedView {
                 case .convert:
                     ConversionView()
+                        .environmentObject(appState.conversionViewModel)
                 case .library:
                     LibraryView()
                 case .player:
