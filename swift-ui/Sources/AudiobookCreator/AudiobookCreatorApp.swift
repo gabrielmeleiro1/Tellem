@@ -15,14 +15,16 @@ struct AudiobookCreatorApp: App {
         .commands {
             CommandMenu("Conversion") {
                 Button("Start Conversion") {
-                    appState.startConversion()
+                    appState.conversionViewModel.startConversion()
                 }
                 .keyboardShortcut("r", modifiers: .command)
+                .disabled(appState.conversionViewModel.selectedFile == nil || appState.conversionViewModel.isConverting)
                 
                 Button("Cancel") {
-                    appState.cancelConversion()
+                    appState.conversionViewModel.cancelConversion()
                 }
                 .keyboardShortcut(".", modifiers: [.command, .shift])
+                .disabled(!appState.conversionViewModel.isConverting)
             }
             
             CommandMenu("View") {
@@ -52,11 +54,15 @@ class AppState: ObservableObject {
     @Published var selectedView: AppView = .convert
     @Published var isConnected = false
     
+    // Shared ViewModel - persists across view switches
+    @Published var conversionViewModel: ConversionViewModel
+    
     // Services
     let grpcClient: GRPCClient
     
     init() {
         self.grpcClient = GRPCClient(target: .host("localhost", port: 50051))
+        self.conversionViewModel = ConversionViewModel(grpcClient: grpcClient)
         
         // Check connection on init
         Task {
@@ -71,14 +77,6 @@ class AppState: ObservableObject {
         } catch {
             isConnected = false
         }
-    }
-    
-    func startConversion() {
-        // Handled by ConversionViewModel
-    }
-    
-    func cancelConversion() {
-        // Handled by ConversionViewModel
     }
 }
 
