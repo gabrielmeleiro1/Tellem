@@ -81,3 +81,4 @@ htmlcov/
 models/
 *.safetensors
 *.bin
+documentation/
