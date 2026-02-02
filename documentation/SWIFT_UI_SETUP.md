@@ -338,6 +338,41 @@ swift-ui/
 
 ---
 
+## Latest Changes
+
+### 2026-02-02 - Drop Zone Click & State Persistence
+
+#### Clickable Drop Zone
+- **File:** `Sources/AudiobookCreator/Features/Conversion/ConversionView.swift`
+- The "Drop PDF or EPUB" zone is now clickable - opens Finder file picker
+- Visual feedback on hover (icon brightens, "click to browse" turns accent color)
+- Maintains drag-and-drop functionality alongside click-to-browse
+
+#### State Persistence Across Tab Switches
+- **Files:** `AudiobookCreatorApp.swift`, `ContentView.swift`, `ConversionView.swift`
+- Moved `ConversionViewModel` ownership from `ConversionView` to `AppState`
+- Conversion now continues when switching to Library tab and back
+- All progress, logs, and settings persist across view navigation
+- Menu bar commands properly reflect conversion state
+
+### Architecture Change for State Persistence
+
+```swift
+// Before: ViewModel created inside View (destroyed on view change)
+struct ConversionView: View {
+    @StateObject private var viewModel = ConversionViewModel()  // ❌ Lost on tab switch
+}
+
+// After: ViewModel owned by AppState (survives view changes)
+class AppState: ObservableObject {
+    @Published var conversionViewModel: ConversionViewModel  // ✅ Persists across tabs
+}
+
+struct ConversionView: View {
+    @EnvironmentObject var viewModel: ConversionViewModel  // Injected from AppState
+}
+```
+
 ## Next Steps
 
 1. **Library Browser:** Implement `LibraryView.swift`
