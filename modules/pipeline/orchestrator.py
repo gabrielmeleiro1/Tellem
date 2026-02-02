@@ -299,12 +299,12 @@ class ConversionPipeline:
             # Persistence: Save full source markdown
             self._save_intermediate_source(document, book_output_dir)
             
+            # Determine processing mode
+            total_chapters = len(document.chapters)
+            
             # Warm up models before processing chapters (sequential mode only)
             if not self.is_parallel and total_chapters > 0:
                 self._warmup_models()
-            
-            # Determine processing mode
-            total_chapters = len(document.chapters)
             use_parallel = (
                 self.is_parallel 
                 and total_chapters > 1 
