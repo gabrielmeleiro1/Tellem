@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 // MARK: - Main Conversion View
 
 struct ConversionView: View {
-    @StateObject private var viewModel = ConversionViewModel()
+    @EnvironmentObject var viewModel: ConversionViewModel
     
     var body: some View {
         HStack(spacing: 16) {
@@ -55,7 +55,9 @@ struct FileDropView: View {
             if let file = viewModel.selectedFile {
                 SelectedFileView(file: file, viewModel: viewModel)
             } else {
-                DropTargetView(isDropTarget: $isDropTarget)
+                DropTargetView(isDropTarget: $isDropTarget) {
+                    viewModel.showFilePicker()
+                }
             }
         }
         .onDrop(of: [.pdf, .epub], isTargeted: $isDropTarget) { providers in
@@ -125,21 +127,46 @@ struct SelectedFileView: View {
 
 struct DropTargetView: View {
     @Binding var isDropTarget: Bool
+    let onTap: () -> Void
+    @State private var isHovered = false
     
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "arrow.down.document")
-                .font(.system(size: 48))
-                .foregroundColor(isDropTarget ? .mossAccent : .mossTextDim)
-            
-            Text("Drop PDF or EPUB")
-                .font(.system(.body, design: .monospaced))
-                .foregroundColor(.mossTextMain)
-            
-            Text("or click to browse")
-                .font(.caption)
-                .foregroundColor(.mossTextDim)
+        Button(action: onTap) {
+            VStack(spacing: 16) {
+                Image(systemName: "arrow.down.document")
+                    .font(.system(size: 48))
+                    .foregroundColor(isDropTarget ? .mossAccent : (isHovered ? .mossTextMain : .mossTextDim))
+                
+                Text("Drop PDF or EPUB")
+                    .font(.system(.body, design: .monospaced))
+                    .foregroundColor(.mossTextMain)
+                
+                Text("or click to browse")
+                    .font(.caption)
+                    .foregroundColor(isHovered ? .mossAccent : .mossTextDim)
+            }
         }
+        .buttonStyle(DropZoneButtonStyle(isDropTarget: isDropTarget, isHovered: isHovered))
+        .onHover { hovering in
+            isHovered = hovering
+        }
+    }
+}
+
+// MARK: - Drop Zone Button Style
+
+struct DropZoneButtonStyle: ButtonStyle {
+    let isDropTarget: Bool
+    let isHovered: Bool
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .opacity(configuration.isPressed ? 0.7 : 1.0)
+            .background(
+                isHovered && !isDropTarget ? Color.mossElevated.opacity(0.5) : Color.clear
+            )
     }
 }
 
