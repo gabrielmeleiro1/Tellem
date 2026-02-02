@@ -11,7 +11,9 @@ struct AudiobookCreatorApp: App {
                 .environmentObject(appState)
                 .frame(minWidth: 1200, minHeight: 800)
         }
+        .defaultSize(width: 1400, height: 900)
         .windowStyle(.titleBar)
+        .windowResizability(.contentSize)
         .commands {
             CommandMenu("Conversion") {
                 Button("Start Conversion") {
@@ -84,10 +86,24 @@ class AppState: ObservableObject {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Setup menu bar or other app-level config
+        // Ensure proper window level and visibility
+        if let window = NSApplication.shared.windows.first {
+            window.titlebarAppearsTransparent = false
+            window.titleVisibility = .visible
+            window.isReleasedWhenClosed = false
+            window.setContentSize(NSSize(width: 1400, height: 900))
+            window.center()
+        }
     }
     
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return true
+    }
+    
+    func applicationDidBecomeActive(_ notification: Notification) {
+        // Ensure window is properly shown when app becomes active
+        if let window = NSApplication.shared.windows.first, !window.isVisible {
+            window.makeKeyAndOrderFront(nil)
+        }
     }
 }
