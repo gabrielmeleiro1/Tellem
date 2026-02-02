@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/tts/strategies/orpheus.py
+# hypothesis_version: 6.151.4
+
+[0.0, 0.5, 1.0, 15.0, 24000, '0.0.1-future', 'Default', 'default', 'en-US', 'neutral', 'orpheus', 'orpheus_default']

@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/tts/strategies/kokoro.py
+# hypothesis_version: 6.151.4
+
+[0.0, 0.5, 1.0, 15.0, 8192, '1.0.0', 'Adam', 'Bella', 'Emma', 'George', 'Kokoro 82M', 'Michael', 'Sarah', 'af_bella', 'af_sarah', 'am_adam', 'am_michael', 'bf_emma', 'bm_george', 'chunks_processed', 'en-GB', 'en-US', 'female', 'kokoro', 'male']

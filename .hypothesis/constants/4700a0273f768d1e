@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/tts/chunker.py
+# hypothesis_version: 6.151.4
+
+[4.0, 100, 150, 500, '["\\\'][.!?,]?\\s*$', '^["\\\']', '__main__', 'word ']

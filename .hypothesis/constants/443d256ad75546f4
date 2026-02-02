@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/audio/packager.py
+# hypothesis_version: 6.151.4
+
+[0.5, 1000.0, 440, 1000, 24000, 32767, '+faststart', '-b:a', '-c:a', '-c:v', '-disposition:v', '-f', '-i', '-map', '-map_metadata', '-movflags', '-print_format', '-safe', '-show_chapters', '-v', '-y', '0', '0:a', '1', '128k', '2:v', ';FFMETADATA1', 'Audiobook', 'Chapter', 'Chapter 1', 'Chapter 2', 'Chapter 3', 'M4B file not created', 'TIMEBASE=1/1000', 'Test Audiobook', 'Test Author', 'Test Narrator', '[CHAPTER]', '__main__', 'aac', 'attached_pic', 'chapters', 'chapters.txt', 'concat', 'concat.m4a', 'concat.txt', 'copy', 'end_time', 'ffmpeg', 'ffprobe', 'json', 'mjpeg', 'quiet', 'start_time', 'tags', 'test_audiobook.m4b', 'title', 'w']

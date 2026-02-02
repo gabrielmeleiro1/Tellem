@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/concurrency.py
+# hypothesis_version: 6.151.4
+
+[0.0, 1.0, 'T', 'Task cancelled', 'Task completed', 'Task queued', 'Task started', 'Task was cancelled', '_initialized', 'cancelled', 'completed', 'failed', 'pending', 'running']

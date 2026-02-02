@@ -85,25 +85,74 @@ class AppState: ObservableObject {
 // MARK: - App Delegate
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+    
+    /// Reference to the main app window for restoration
+    private weak var mainWindow: NSWindow?
+    
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Ensure proper window level and visibility
+        // Configure the main window
         if let window = NSApplication.shared.windows.first {
-            window.titlebarAppearsTransparent = false
-            window.titleVisibility = .visible
-            window.isReleasedWhenClosed = false
-            window.setContentSize(NSSize(width: 1400, height: 900))
-            window.center()
+            configureWindow(window)
+            self.mainWindow = window
         }
     }
     
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+    /// Configure window appearance and behavior
+    private func configureWindow(_ window: NSWindow) {
+        window.titlebarAppearsTransparent = false
+        window.titleVisibility = .visible
+        window.isReleasedWhenClosed = false
+        window.setContentSize(NSSize(width: 1400, height: 900))
+        window.center()
+        
+        // Ensure window can become key and main
+        window.canBecomeKey = true
+        window.canBecomeMain = true
+        
+        // Set window level to normal (not floating)
+        window.level = .normal
+    }
+    
+    /// Called when the user clicks the dock icon or uses Cmd+Tab to switch to the app.
+    /// This is the KEY method for handling window restoration on macOS.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if let window = mainWindow ?? NSApplication.shared.windows.first {
+            if window.isMiniaturized {
+                // If minimized, deminiaturize it
+                window.deminiaturize(nil)
+            }
+            // Always bring window to front and make it key
+            window.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
+        }
         return true
     }
     
+    /// Called when the app becomes active (e.g., clicking on the app in the Dock)
     func applicationDidBecomeActive(_ notification: Notification) {
-        // Ensure window is properly shown when app becomes active
-        if let window = NSApplication.shared.windows.first, !window.isVisible {
+        guard let window = mainWindow ?? NSApplication.shared.windows.first else { return }
+        
+        // Always bring window forward when app becomes active
+        // This handles edge cases where the window might be behind others
+        if !window.isVisible {
             window.makeKeyAndOrderFront(nil)
+        } else if !window.isKeyWindow {
+            window.makeKeyAndOrderFront(nil)
+        }
+    }
+    
+    /// Keep app running when last window is closed (standard for document-based apps)
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        // Return false to keep the app running when window is closed
+        // This allows the window to be restored when clicking the dock icon
+        return false
+    }
+    
+    /// Called when a new window is created (e.g., after closing and reopening)
+    func applicationDidUpdate(_ notification: Notification) {
+        // Track the main window if we lost reference
+        if mainWindow == nil || mainWindow?.isReleasedWhenClosed == nil {
+            mainWindow = NSApplication.shared.windows.first
         }
     }
 }

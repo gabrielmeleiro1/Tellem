@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/tts/__init__.py
+# hypothesis_version: 6.151.4
+
+['ChunkConfig', 'CleanerConfig', 'KOKORO_VOICES', 'KokoroConfig', 'KokoroTTSStrategy', 'OrpheusConfig', 'OrpheusTTSStrategy', 'StrategyConfig', 'TTSConfig', 'TTSEngine', 'TTSEngineFactory', 'TTSStrategy', 'TTSVoice', 'TextChunker', 'TextCleaner', 'VRAMManager', 'chunk_text', 'clear_vram', 'create_tts_engine', 'get_memory_stats', 'list_voices']

@@ -1,0 +1,414 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.AudiobookCreator-arm64-apple-macosx26.0-debug.module" : {
+      "executable" : "/Library/Developer/CommandLineTools/usr/bin/swiftc",
+      "fileList" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/sources",
+      "importPath" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/AudiobookCreatorApp.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/ContentView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/DesignSystem/Colors.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/ConversionView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/ConversionViewModel.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/ModelStatusPanel.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/Models.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/ProgressPanel.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/TerminalView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Networking/GRPCClient.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/sources"
+        }
+      ],
+      "isLibrary" : false,
+      "moduleName" : "AudiobookCreator",
+      "moduleOutputPath" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/Modules/AudiobookCreator.swiftmodule",
+      "objects" : [
+        "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/AudiobookCreatorApp.swift.o",
+        "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/ContentView.swift.o",
+        "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/Colors.swift.o",
+        "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/ConversionView.swift.o",
+        "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/ConversionViewModel.swift.o",
+        "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/ModelStatusPanel.swift.o",
+        "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/Models.swift.o",
+        "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/ProgressPanel.swift.o",
+        "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/TerminalView.swift.o",
+        "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/GRPCClient.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx13.0",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-index-store-path",
+        "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-j8",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-Xfrontend",
+        "-entry-point-function-name",
+        "-Xfrontend",
+        "AudiobookCreator_main",
+        "-swift-version",
+        "5",
+        "-enable-experimental-feature",
+        "StrictConcurrency",
+        "-I",
+        "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+        "-L",
+        "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+        "-plugin-path",
+        "/Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "swift_ui"
+      ],
+      "outputFileMapPath" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/AudiobookCreatorApp.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/ContentView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/Colors.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/ConversionView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/ConversionViewModel.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/ModelStatusPanel.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/Models.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/ProgressPanel.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/TerminalView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/GRPCClient.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/Modules/AudiobookCreator.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/AudiobookCreatorApp.swift",
+        "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/ContentView.swift",
+        "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/DesignSystem/Colors.swift",
+        "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/ConversionView.swift",
+        "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/ConversionViewModel.swift",
+        "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/ModelStatusPanel.swift",
+        "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/Models.swift",
+        "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/ProgressPanel.swift",
+        "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/TerminalView.swift",
+        "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Networking/GRPCClient.swift"
+      ],
+      "tempsPath" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "AudiobookCreator" : [
+      "/Library/Developer/CommandLineTools/usr/bin/swiftc",
+      "-module-name",
+      "AudiobookCreator",
+      "-package-name",
+      "swift_ui",
+      "-c",
+      "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/AudiobookCreatorApp.swift",
+      "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/ContentView.swift",
+      "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/DesignSystem/Colors.swift",
+      "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/ConversionView.swift",
+      "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/ConversionViewModel.swift",
+      "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/ModelStatusPanel.swift",
+      "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/Models.swift",
+      "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/ProgressPanel.swift",
+      "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/TerminalView.swift",
+      "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Networking/GRPCClient.swift",
+      "-I",
+      "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx13.0",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-index-store-path",
+      "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-j8",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-Xfrontend",
+      "-entry-point-function-name",
+      "-Xfrontend",
+      "AudiobookCreator_main",
+      "-swift-version",
+      "5",
+      "-enable-experimental-feature",
+      "StrictConcurrency",
+      "-I",
+      "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+      "-L",
+      "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+      "-plugin-path",
+      "/Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "swift_ui",
+      "-driver-use-frontend-path",
+      "/Library/Developer/CommandLineTools/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "AudiobookCreator" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "traitConfiguration" : {
+    "default" : {
+
+    }
+  },
+  "writeCommands" : {
+    "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator-entitlement.plist" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<entitlement-plist>"
+        },
+        {
+          "kind" : "virtual",
+          "name" : "<com.apple.security.get-task-allow>"
+        }
+      ],
+      "outputFilePath" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator-entitlement.plist"
+    },
+    "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/AudiobookCreatorApp.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/ContentView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/DesignSystem/Colors.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/ConversionView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/ConversionViewModel.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/ModelStatusPanel.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/Models.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/ProgressPanel.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Features/Conversion/TerminalView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/Sources/AudiobookCreator/Networking/GRPCClient.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/sources"
+    },
+    "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/AudiobookCreatorApp.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/Colors.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/ContentView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/ConversionView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/ConversionViewModel.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/GRPCClient.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/ModelStatusPanel.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/Models.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/ProgressPanel.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.build/TerminalView.swift.o"
+        }
+      ],
+      "outputFilePath" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/AudiobookCreator.product/Objects.LinkFileList"
+    },
+    "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Library/Developer/CommandLineTools/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/main/Developer/Audiobook/swift-ui/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt"
+    }
+  }
+}

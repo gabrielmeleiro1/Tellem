@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/pipeline/orchestrator.py
+# hypothesis_version: 6.151.4
+
+[-16.0, 0.0, 1.0, 32.0, 100, 500, 1000, 24000, ' -_', '...', '.epub', '.pdf', '128k', 'Cancelled', 'Conversion complete!', 'No audio generated', 'No text content', 'PCM_16', 'Unknown', '_', 'am_adam', 'author', 'cancelled', 'chapters', 'chunking', 'cleaning', 'complete', 'encoding', 'error', 'idle', 'info', 'ingesting', 'output', 'packaging', 'process', 'source.md', 'success', 'synthesizing', 'temp', 'utf-8', 'warning']

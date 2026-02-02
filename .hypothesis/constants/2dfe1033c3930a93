@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/tts/engine.py
+# hypothesis_version: 6.151.4
+
+[0.0, 0.05, 0.5, 1.0, 2.0, 300.0, 500, 1000, 8192, 24000, 10000000, '.tmp.npy', '.wav', '4bit', '6bit', '8bit', 'PCM_16', '__main__', 'af_bella', 'af_sarah', 'am_adam', 'am_michael', 'bf16', 'bf_emma', 'bm_george', 'checkpoint', 'connection', 'download', 'float32', 'http', 'load', 'memory', 'model', 'network', 'oom', 'r', 'repository', 'timeout', 'tts_engine', 'tts_output', 'vram', 'w', 'w+', 'wav', 'weight']

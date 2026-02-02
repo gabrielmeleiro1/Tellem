@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/storage/sqlite_repo.py
+# hypothesis_version: 6.151.4
+
+[100, ' WHERE j.status = ?', ', ', 'author', 'book_id', 'books_by_type', 'chapter_number', 'completed_at', 'completed_chapters', 'count', 'created_at', 'current_stage', 'data/audiobooks.db', 'duration_ms', 'duration_ms = ?', 'error_message', 'id', 'mp3_path', 'mp3_path = ?', 'progress', 'source_path', 'source_type', 'start_time_ms', 'started_at', 'status', 'title', 'total_books', 'total_chapters', 'total_duration_ms', 'updated_at']

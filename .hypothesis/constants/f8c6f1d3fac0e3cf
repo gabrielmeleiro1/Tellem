@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/errors.py
+# hypothesis_version: 6.151.4
+
+[b'%%EOF', b'%PDF-', 1.2, -1024, 128, 150, 200, 1000, 1024, 50000, ' .', 'Chapter too long', 'Disk full', 'FFmpeg not found', 'File corrupted', 'M4B packaging failed', 'PDF parsing failed', 'Pipeline cancelled', 'Pipeline timeout', 'Text cleaning failed', 'VRAM overflow', '_', '_+', 'application/epub+zip', 'ignore', 'mimetype', 'r', 'rb', 'untitled', 'utf-8']

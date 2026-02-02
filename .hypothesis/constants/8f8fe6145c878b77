@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/audio/__init__.py
+# hypothesis_version: 6.151.4
+
+['AudioEncoder', 'AudioProcessor', 'AudiobookMetadata', 'BufferPool', 'BufferStats', 'ChapterMarker', 'M4BPackager', 'PooledBuffer', 'get_buffer_pool', 'pooled_array']

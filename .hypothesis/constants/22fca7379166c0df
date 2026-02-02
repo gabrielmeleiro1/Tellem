@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/pipeline/parallel.py
+# hypothesis_version: 6.151.4
+
+[0.0, 0.05, 0.1, 0.5, 0.9, 1.0, 1.5, 2.0, 32.0, 1024, 24000, '.tmp', 'MLX_METAL_MEMORY', 'PCM_16', 'T', 'loop', 'r', 'spawn', 'utf-8', 'w']

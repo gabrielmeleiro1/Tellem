@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/tts/cleaner.py
+# hypothesis_version: 6.151.4
+
+[0.0, 0.1, 1000, 2048, '(?m)^#{1,6}\\s+', '([,.!?;:])([A-Za-z])', 'Doctor ', 'Hello, world', 'Hello,world', 'Junior', 'Miss ', 'Missus ', 'Mister ', 'Professor ', 'Saint ', 'Senior', 'Text cleaner loaded', 'Too   many    spaces', 'Too many spaces', '\\1', '\\1 \\2', '\\bDr\\.\\s', '\\bJr\\.', '\\bMr\\.\\s', '\\bMrs\\.\\s', '\\bMs\\.\\s', '\\bProf\\.\\s', '\\bSr\\.', '\\bSt\\.\\s', '\\b[A-Z]{2,}\\b', '\\b\\d+\\b', '\\be\\.g\\.', '\\betc\\.', '\\bi\\.e\\.', '\\bvs\\.', '\\n\\s*\\n', '\\s+', '\\s+([,.!?;:])', '__main__', '`', 'et cetera', 'for example', 'text-cleaner', 'that is', 'versus']

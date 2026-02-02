@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/audio/processor.py
+# hypothesis_version: 6.151.4
+
+[-16.0, 1.0, 1000.0, 32768.0, 440, 500, 1500, 24000, 32767, '-inf', 'Concatenation failed', 'Normalization failed', '__main__', 'current_pooled', 'reuse_ratio', 'total_allocated', 'total_reused', 'unsafe', 'wav']

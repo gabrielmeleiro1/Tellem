@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/ingestion/__init__.py
+# hypothesis_version: 6.151.4
+
+['EPUBParser', 'MarkdownNormalizer', 'PDFParser']

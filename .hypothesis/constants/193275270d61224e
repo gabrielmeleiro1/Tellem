@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/audio/encoder.py
+# hypothesis_version: 6.151.4
+
+[0.9, 1.0, 1.1, 440, 3600, 24000, 32767, '-ac', '-ar', '-b:a', '-c:a', '-hwaccels', '-i', '-print_format', '-q:a', '-show_format', '-v', '-y', '.mp3', '1', '128k', '2', 'MP3 file not created', '__main__', 'cuda', 'duration', 'ffmpeg', 'ffprobe', 'format', 'json', 'libmp3lame', 'quiet', 'test.mp3', 'test.wav', 'vaapi', 'videotoolbox', 'w']

@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/tts/factory.py
+# hypothesis_version: 6.151.4
+
+[', ', 'description', 'display_name', 'gender', 'id', 'kokoro', 'language', 'name', 'orpheus', 'sample_rate', 'supports_batching', 'supports_streaming', 'version', 'voices']

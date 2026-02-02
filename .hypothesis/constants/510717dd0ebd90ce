@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/audio/buffer_pool.py
+# hypothesis_version: 6.151.4
+
+[0.0, 1.2, 512.0, 1000, 1024, 24000, '__main__', '__weakref__', '_array', '_dtype', '_in_use', '_initialized', '_pool', '_shape']

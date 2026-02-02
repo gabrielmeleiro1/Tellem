@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/storage/__init__.py
+# hypothesis_version: 6.151.4
+
+['Book', 'BookCreate', 'BookFilters', 'BookSummary', 'Chapter', 'ChapterCreate', 'ConversionResult', 'Database', 'IBookRepository', 'ProcessingJob', 'ProcessingStatus', 'SQLiteRepository', 'SourceType']

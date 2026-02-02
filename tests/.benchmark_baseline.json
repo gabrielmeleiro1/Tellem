@@ -1,0 +1,16 @@
+{
+  "tts_baseline_medium": {
+    "name": "tts_baseline_medium",
+    "chars_per_second": 9460.701578255848,
+    "total_chars": 2697,
+    "elapsed_seconds": 0.28507399559020996,
+    "timestamp": "2026-02-02T03:15:11"
+  },
+  "tts_real_baseline": {
+    "name": "tts_real_baseline",
+    "chars_per_second": 62.174193086609506,
+    "total_chars": 589,
+    "elapsed_seconds": 9.473383903503418,
+    "timestamp": "2026-02-02T03:15:34"
+  }
+}

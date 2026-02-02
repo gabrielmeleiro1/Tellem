@@ -1,0 +1,4 @@
+# file: /Users/main/Developer/Audiobook/modules/ingestion/pdf_parser.py
+# hypothesis_version: 6.151.4
+
+[50000, '.pdf', 'Full Document', 'author', 'text', 'title']
