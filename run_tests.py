@@ -18,6 +18,8 @@ TEST_MODULES = [
     "tests/test_database.py",
     "tests/test_cleaner.py",
     "tests/test_cli.py",
+    "tests/test_tui.py",
+    "tests/test_main_launcher.py",
     "tests/test_events.py",
 ]
 
