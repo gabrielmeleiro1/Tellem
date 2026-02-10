@@ -3,8 +3,8 @@ Application Controller
 ======================
 Central controller for audiobook creator business logic.
 
-Moves business logic out of the UI layer (main.py) to enable:
-- Testability without Streamlit
+Moves business logic out of presentation layers to enable:
+- Testability without a specific UI framework
 - Clear separation of concerns
 - Easier UI framework changes
 """
@@ -32,6 +32,7 @@ from modules.storage.models import (
 from modules.pipeline.orchestrator import ConversionPipeline, PipelineConfig
 from modules.tts.factory import TTSEngineFactory
 from modules.tts.strategies.base import TTSStrategy
+from modules.tts.cleaner import list_cleaner_models
 from modules.app.events import (
     AppEvent,
     JobState,
@@ -253,7 +254,10 @@ class AppController:
         speed: float,
         callbacks: Optional[ConversionCallbacks] = None,
         title: Optional[str] = None,
-        author: Optional[str] = None
+        author: Optional[str] = None,
+        tts_engine: Optional[str] = None,
+        tts_quantization: Optional[str] = None,
+        cleaner_model: Optional[str] = None,
     ) -> ConversionJob:
         """
         Start a new conversion job.
@@ -265,6 +269,9 @@ class AppController:
             callbacks: Optional progress callbacks
             title: Override book title
             author: Override author name
+            tts_engine: TTS engine identifier
+            tts_quantization: TTS quantization mode
+            cleaner_model: Text-cleaner model identifier
             
         Returns:
             ConversionJob handle
@@ -292,7 +299,18 @@ class AppController:
         # Run conversion in background thread
         thread = threading.Thread(
             target=self._run_conversion,
-            args=(job, source_path, voice, speed, callbacks, title, author),
+            args=(
+                job,
+                source_path,
+                voice,
+                speed,
+                callbacks,
+                title,
+                author,
+                tts_engine,
+                tts_quantization,
+                cleaner_model,
+            ),
             daemon=True
         )
         job._thread = thread
@@ -311,14 +329,28 @@ class AppController:
         speed: float,
         callbacks: Optional[ConversionCallbacks],
         title: Optional[str],
-        author: Optional[str]
+        author: Optional[str],
+        tts_engine: Optional[str],
+        tts_quantization: Optional[str],
+        cleaner_model: Optional[str],
     ):
         """
         Internal method to run conversion in background thread.
         """
         try:
             # Create pipeline config
+            effective_tts_engine = (tts_engine or self.config.tts_engine).lower()
+            if effective_tts_engine != "kokoro":
+                raise ValueError(
+                    f"TTS engine '{effective_tts_engine}' is not supported for conversion yet. "
+                    "Use 'kokoro'."
+                )
+
             pipeline_config = PipelineConfig(
+                tts_engine=effective_tts_engine,
+                tts_model_name="mlx-community/Kokoro-82M",
+                tts_quantization=tts_quantization or self.config.tts_quantization,
+                cleaner_model_name=cleaner_model or self.config.cleaner_model_name,
                 voice=voice,
                 speed=speed,
                 output_dir=self.config.output_dir,
@@ -519,14 +551,18 @@ class AppController:
         
         return Path(temp_file.name)
     
-    def get_available_voices(self) -> list[dict]:
+    def get_available_voices(self, engine_name: Optional[str] = None) -> list[dict]:
         """
         Get list of available voices.
+
+        Args:
+            engine_name: Optional engine override
         
         Returns:
             List of voice info dicts
         """
-        engine = TTSEngineFactory.create(self.config.tts_engine)
+        selected_engine = (engine_name or self.config.tts_engine).lower()
+        engine = TTSEngineFactory.create(selected_engine)
         
         return [
             {
@@ -538,6 +574,28 @@ class AppController:
             }
             for v in engine.supported_voices
         ]
+
+    def get_available_tts_engines(self) -> list[dict]:
+        """Get available TTS engine info for UI model selection."""
+        engines: list[dict] = []
+        for engine_name in TTSEngineFactory.available_engines():
+            info = TTSEngineFactory.get_engine_info(engine_name)
+            engines.append(
+                {
+                    "id": engine_name,
+                    "display_name": info["display_name"],
+                    "available_for_conversion": engine_name == "kokoro",
+                    "voices": info["voices"],
+                }
+            )
+        return engines
+
+    def get_available_cleaner_models(self) -> list[str]:
+        """Get text-cleaner model options for UI model selection."""
+        models = list_cleaner_models()
+        if self.config.cleaner_model_name not in models:
+            models.insert(0, self.config.cleaner_model_name)
+        return models
     
     # ==================== Processing History ====================
     
