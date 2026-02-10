@@ -58,6 +58,10 @@ class PipelineStage(Enum):
 @dataclass
 class PipelineConfig:
     """Configuration for conversion pipeline."""
+    tts_engine: str = "kokoro"
+    tts_model_name: str = "mlx-community/Kokoro-82M"
+    tts_quantization: str = "bf16"
+    cleaner_model_name: str = "mlx-community/Llama-3.2-3B-Instruct-4bit"
     voice: str = "am_adam"
     speed: float = 1.0
     output_dir: Path = field(default_factory=lambda: Path("output"))
@@ -495,6 +499,10 @@ class ConversionPipeline:
         """
         # Create a new pipeline instance for this worker
         worker_config = PipelineConfig(
+            tts_engine=config.tts_engine,
+            tts_model_name=config.tts_model_name,
+            tts_quantization=config.tts_quantization,
+            cleaner_model_name=config.cleaner_model_name,
             voice=config.voice,
             speed=config.speed,
             output_dir=config.output_dir,
@@ -535,7 +543,7 @@ class ConversionPipeline:
         Process a single chapter: chunk → clean → synthesize → encode.
         """
         from modules.tts.chunker import TextChunker, ChunkConfig
-        from modules.tts.engine import TTSEngine, BatchItem, concatenate_audio_files
+        from modules.tts.engine import TTSEngine, TTSConfig, BatchItem, concatenate_audio_files
         from modules.audio.processor import AudioProcessor
         from modules.audio.encoder import AudioEncoder
         import soundfile as sf
@@ -551,13 +559,18 @@ class ConversionPipeline:
             self._log_verbose(f"[STATUS] Starting first chapter: {chapter.title}", "process")
         
         # Use persistent TTS engine across chapters for caching (sequential mode)
+        engine_config = TTSConfig(
+            model_name=self.config.tts_model_name,
+            quantization=self.config.tts_quantization,
+            default_voice=self.config.voice,
+        )
         if not self.is_parallel:
             if self._tts_engine is None:
-                self._tts_engine = TTSEngine()
+                self._tts_engine = TTSEngine(config=engine_config)
                 self._tts_engine.load_model()
         else:
             # In parallel mode, each worker creates its own engine
-            tts_engine = TTSEngine()
+            tts_engine = TTSEngine(config=engine_config)
             tts_engine.load_model()
             self._tts_engine = tts_engine
         
@@ -591,10 +604,15 @@ class ConversionPipeline:
             if not self.is_parallel:
                 if self._text_cleaner is None:
                     self._log_verbose(
-                        "[CLEANER] Loading Text Cleaner model: mlx-community/Llama-3.2-3B-Instruct-4bit",
+                        f"[CLEANER] Loading Text Cleaner model: {self.config.cleaner_model_name}",
                         "process"
                     )
-                    self._text_cleaner = TextCleaner(config=CleanerConfig(cache_model=True))
+                    self._text_cleaner = TextCleaner(
+                        config=CleanerConfig(
+                            model_name=self.config.cleaner_model_name,
+                            cache_model=True,
+                        )
+                    )
                     self._text_cleaner.load()
                     self._log_verbose("[CLEANER] Model loaded - Cleaning text chunks...", "success")
                 else:
@@ -603,10 +621,15 @@ class ConversionPipeline:
             else:
                 # In parallel mode, each worker creates its own cleaner
                 self._log_verbose(
-                    "[CLEANER] Loading Text Cleaner model: mlx-community/Llama-3.2-3B-Instruct-4bit",
+                    f"[CLEANER] Loading Text Cleaner model: {self.config.cleaner_model_name}",
                     "process"
                 )
-                text_cleaner = TextCleaner(config=CleanerConfig(cache_model=True))
+                text_cleaner = TextCleaner(
+                    config=CleanerConfig(
+                        model_name=self.config.cleaner_model_name,
+                        cache_model=True,
+                    )
+                )
                 text_cleaner.load()
                 self._log_verbose("[CLEANER] Model loaded - Cleaning text chunks...", "success")
             
@@ -649,9 +672,15 @@ class ConversionPipeline:
             # Check if using cached model (loaded during warm-up) or fresh load (parallel mode)
             is_cached = self._tts_engine is not None and self._tts_engine.is_loaded
             if is_cached:
-                self._log_verbose("[TTS] Using cached TTS Model: mlx-community/Kokoro-82M-bf16", "success")
+                self._log_verbose(
+                    f"[TTS] Using cached TTS Model: {self.config.tts_model_name}-{self.config.tts_quantization}",
+                    "success",
+                )
             else:
-                self._log_verbose("[TTS] Loading TTS Model: mlx-community/Kokoro-82M-bf16", "process")
+                self._log_verbose(
+                    f"[TTS] Loading TTS Model: {self.config.tts_model_name}-{self.config.tts_quantization}",
+                    "process",
+                )
             self._log_verbose("[STATUS] TTS (Text-to-Speech) running...", "process")
             
             if is_cached:
@@ -908,17 +937,34 @@ class ConversionPipeline:
         
         # Warm up TTS engine
         if self._tts_engine is None:
-            from modules.tts.engine import TTSEngine
-            self._log_verbose("[WARMUP] Loading TTS Model: mlx-community/Kokoro-82M-bf16", "process")
-            self._tts_engine = TTSEngine()
+            from modules.tts.engine import TTSEngine, TTSConfig
+            self._log_verbose(
+                f"[WARMUP] Loading TTS Model: {self.config.tts_model_name}-{self.config.tts_quantization}",
+                "process",
+            )
+            self._tts_engine = TTSEngine(
+                config=TTSConfig(
+                    model_name=self.config.tts_model_name,
+                    quantization=self.config.tts_quantization,
+                    default_voice=self.config.voice,
+                )
+            )
             self._tts_engine.load_model()
             self._log_verbose("[WARMUP] TTS Model loaded and cached", "success")
         
         # Warm up text cleaner
         if self._text_cleaner is None:
             from modules.tts.cleaner import TextCleaner, CleanerConfig
-            self._log_verbose("[WARMUP] Loading Text Cleaner model: mlx-community/Llama-3.2-3B-Instruct-4bit", "process")
-            self._text_cleaner = TextCleaner(config=CleanerConfig(cache_model=True))
+            self._log_verbose(
+                f"[WARMUP] Loading Text Cleaner model: {self.config.cleaner_model_name}",
+                "process",
+            )
+            self._text_cleaner = TextCleaner(
+                config=CleanerConfig(
+                    model_name=self.config.cleaner_model_name,
+                    cache_model=True,
+                )
+            )
             self._text_cleaner.load()
             self._log_verbose("[WARMUP] Text Cleaner model loaded and cached", "success")
         
