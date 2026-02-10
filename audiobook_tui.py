@@ -3,6 +3,7 @@
 Audiobook Creator TUI launcher.
 
 Usage:
+    python main.py
     python audiobook_tui.py --source /path/to/book.pdf
 """
 
@@ -20,6 +21,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--speed", type=float, default=1.0, help="Speech speed (default: 1.0)")
     parser.add_argument("--title", help="Optional title override")
     parser.add_argument("--author", help="Optional author override")
+    parser.add_argument("--tts-engine", default="kokoro", help="TTS engine ID (default: kokoro)")
+    parser.add_argument(
+        "--tts-quantization",
+        default="bf16",
+        choices=["bf16", "8bit", "6bit", "4bit"],
+        help="TTS quantization model (default: bf16)",
+    )
+    parser.add_argument(
+        "--cleaner-model",
+        default="mlx-community/Llama-3.2-3B-Instruct-4bit",
+        help="Text cleaner model ID",
+    )
     return parser
 
 
@@ -38,6 +51,9 @@ def main(argv: list[str] | None = None) -> int:
         speed=args.speed,
         title=args.title,
         author=args.author,
+        tts_engine=args.tts_engine,
+        tts_quantization=args.tts_quantization,
+        cleaner_model=args.cleaner_model,
     )
     app = AudiobookTUI(options=options)
     app.run()
