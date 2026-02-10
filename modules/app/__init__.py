@@ -4,7 +4,7 @@ Application Module
 Core application controller and business logic.
 
 This module centralizes business logic that was previously
-scattered in the UI layer (main.py).
+scattered across presentation layers.
 
 Key Components:
     - AppController: Central business logic coordinator
