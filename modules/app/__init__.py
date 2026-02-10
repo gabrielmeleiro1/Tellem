@@ -14,10 +14,24 @@ Key Components:
 
 from .config import AppConfig
 from .controller import AppController, ConversionJob, ConversionCallbacks
+from .events import (
+    AppEvent,
+    EventType,
+    JobState,
+    LogEvent,
+    ProgressEvent,
+    StateEvent,
+)
 
 __all__ = [
     "AppConfig",
     "AppController",
     "ConversionJob",
     "ConversionCallbacks",
+    "AppEvent",
+    "EventType",
+    "JobState",
+    "ProgressEvent",
+    "LogEvent",
+    "StateEvent",
 ]
