@@ -1,11 +1,6 @@
 # Audiobook Creator - Dependencies
 # Python 3.11+ required
 
-# gRPC Backend (for SwiftUI frontend)
-grpcio==1.60.0
-grpcio-tools==1.60.0
-protobuf==4.25.0
-
 # PDF/EPUB Parsing
 pymupdf4llm==0.0.10
 ebooklib==0.18
