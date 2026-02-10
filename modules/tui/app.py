@@ -308,6 +308,12 @@ class NewConversionModal(ModalScreen[Optional[ConversionRequest]]):
 
         return value
 
+    @staticmethod
+    def _default_tree_root() -> Path:
+        # Use the system root ("/" on Unix-like systems, drive root on Windows)
+        # rather than the current project directory.
+        return Path(Path.home().anchor)
+
     def _validate_source(self) -> Optional[Path]:
         raw = self.query_one("#source-input", Input).value
         if not raw:
@@ -839,8 +845,3 @@ class AudiobookTUI(App):
 
     def on_unmount(self) -> None:
         self.controller.cleanup()
-    @staticmethod
-    def _default_tree_root() -> Path:
-        # Use the system root ("/" on Unix-like systems, drive root on Windows)
-        # rather than the current project directory.
-        return Path(Path.home().anchor)
