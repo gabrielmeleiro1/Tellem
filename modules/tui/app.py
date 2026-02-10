@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Optional
 
 from textual.app import App, ComposeResult
-from textual.containers import Container, Horizontal, Vertical
+from textual.containers import Container, Horizontal, Vertical, VerticalScroll
 from textual.reactive import reactive
 from textual.screen import ModalScreen
 from textual.widgets import (
@@ -65,6 +65,11 @@ class ConversionRequest:
 class NewConversionModal(ModalScreen[Optional[ConversionRequest]]):
     """Modal to select source file and model options before starting conversion."""
 
+    BINDINGS = [
+        ("enter", "submit", "Start"),
+        ("escape", "cancel_modal", "Cancel"),
+    ]
+
     CSS = """
     NewConversionModal {
         align: center middle;
@@ -76,6 +81,10 @@ class NewConversionModal(ModalScreen[Optional[ConversionRequest]]):
         background: #171717;
         padding: 1 2;
         layout: vertical;
+    }
+    #modal-content {
+        height: 1fr;
+        overflow-y: auto;
     }
     #modal-title {
         color: #f7b267;
@@ -100,6 +109,7 @@ class NewConversionModal(ModalScreen[Optional[ConversionRequest]]):
         height: 2;
     }
     #modal-actions {
+        dock: bottom;
         margin-top: 1;
         height: auto;
     }
@@ -165,70 +175,72 @@ class NewConversionModal(ModalScreen[Optional[ConversionRequest]]):
             default_quantization = quantization_options[0][1]
 
         with Container(id="modal-root"):
-            yield Static("Create New Audiobook", id="modal-title")
-            yield Static(
-                "Select a source file and conversion settings. Choose a file from the tree or paste a path.",
-                id="modal-help",
-            )
-            yield Input(
-                value=str(self.initial.source) if self.initial.source else "",
-                placeholder="/path/to/book.pdf or /path/to/book.epub",
-                id="source-input",
-                classes="field",
-            )
-            yield DirectoryTree(str(Path.cwd()), id="source-tree")
-            yield Select(
-                engine_options,
-                value=default_engine,
-                allow_blank=False,
-                prompt="TTS Engine",
-                id="tts-engine-select",
-                classes="field",
-            )
-            yield Select(
-                voice_options,
-                value=default_voice,
-                allow_blank=False,
-                prompt="Voice",
-                id="voice-select",
-                classes="field",
-            )
-            yield Select(
-                cleaner_options,
-                value=default_cleaner,
-                allow_blank=False,
-                prompt="Text Cleaner Model",
-                id="cleaner-model-select",
-                classes="field",
-            )
-            yield Select(
-                quantization_options,
-                value=default_quantization,
-                allow_blank=False,
-                prompt="TTS Quantization",
-                id="tts-quantization-select",
-                classes="field",
-            )
-            yield Input(
-                value=f"{self.initial.speed:.2f}",
-                placeholder="Speech speed (0.5 - 2.0)",
-                type="number",
-                id="speed-input",
-                classes="field",
-            )
-            yield Input(
-                value=self.initial.title or "",
-                placeholder="Optional title override",
-                id="title-input",
-                classes="field",
-            )
-            yield Input(
-                value=self.initial.author or "",
-                placeholder="Optional author override",
-                id="author-input",
-                classes="field",
-            )
-            yield Static("", id="modal-error")
+            with VerticalScroll(id="modal-content"):
+                yield Static("Create New Audiobook", id="modal-title")
+                yield Static(
+                    "Select a source file and conversion settings. Choose a file from the tree or paste a path.",
+                    id="modal-help",
+                )
+                yield Input(
+                    value=str(self.initial.source) if self.initial.source else "",
+                    placeholder="/path/to/book.pdf or /path/to/book.epub",
+                    id="source-input",
+                    classes="field",
+                )
+                yield DirectoryTree(str(Path.cwd()), id="source-tree")
+                yield Select(
+                    engine_options,
+                    value=default_engine,
+                    allow_blank=False,
+                    prompt="TTS Engine",
+                    id="tts-engine-select",
+                    classes="field",
+                )
+                yield Select(
+                    voice_options,
+                    value=default_voice,
+                    allow_blank=False,
+                    prompt="Voice",
+                    id="voice-select",
+                    classes="field",
+                )
+                yield Select(
+                    cleaner_options,
+                    value=default_cleaner,
+                    allow_blank=False,
+                    prompt="Text Cleaner Model",
+                    id="cleaner-model-select",
+                    classes="field",
+                )
+                yield Select(
+                    quantization_options,
+                    value=default_quantization,
+                    allow_blank=False,
+                    prompt="TTS Quantization",
+                    id="tts-quantization-select",
+                    classes="field",
+                )
+                yield Input(
+                    value=f"{self.initial.speed:.2f}",
+                    placeholder="Speech speed (0.5 - 2.0)",
+                    type="number",
+                    id="speed-input",
+                    classes="field",
+                )
+                yield Input(
+                    value=self.initial.title or "",
+                    placeholder="Optional title override",
+                    id="title-input",
+                    classes="field",
+                )
+                yield Input(
+                    value=self.initial.author or "",
+                    placeholder="Optional author override",
+                    id="author-input",
+                    classes="field",
+                )
+                yield Static("Enter=start, Esc=cancel", classes="field")
+                yield Static("", id="modal-error")
             with Horizontal(id="modal-actions"):
                 yield Button("Start Conversion", id="confirm", classes="-primary")
                 yield Button("Cancel", id="cancel")
@@ -317,6 +329,9 @@ class NewConversionModal(ModalScreen[Optional[ConversionRequest]]):
         if event.button.id != "confirm":
             return
 
+        self._submit_form()
+
+    def _submit_form(self) -> None:
         source = self._validate_source()
         if source is None:
             return
@@ -350,6 +365,12 @@ class NewConversionModal(ModalScreen[Optional[ConversionRequest]]):
                 cleaner_model=cleaner_model,
             )
         )
+
+    def action_submit(self) -> None:
+        self._submit_form()
+
+    def action_cancel_modal(self) -> None:
+        self.dismiss(None)
 
 
 class AudiobookTUI(App):
