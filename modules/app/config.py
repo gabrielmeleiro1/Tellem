@@ -20,6 +20,7 @@ class AppConfig:
         temp_dir: Directory for temporary files
         default_voice: Default voice ID
         default_speed: Default speech speed
+        cleaner_model_name: Default text-cleaner model ID
         max_parallel_chapters: Max chapters to process in parallel
         enable_parallel: Enable parallel processing
         db_path: Path to SQLite database
@@ -35,6 +36,7 @@ class AppConfig:
     default_speed: float = 1.0
     tts_engine: str = "kokoro"
     tts_quantization: str = "bf16"
+    cleaner_model_name: str = "mlx-community/Llama-3.2-3B-Instruct-4bit"
     
     # Pipeline settings
     enable_parallel: bool = True
@@ -98,6 +100,7 @@ class AppConfig:
             "default_speed": self.default_speed,
             "tts_engine": self.tts_engine,
             "tts_quantization": self.tts_quantization,
+            "cleaner_model_name": self.cleaner_model_name,
             "enable_parallel": self.enable_parallel,
             "max_parallel_chapters": self.max_parallel_chapters,
             "chunk_size": self.chunk_size,
