@@ -40,6 +40,10 @@ ENV/
 *~
 .DS_Store
 
+# Codex / agent project files
+.agent/
+AGENTS.md
+
 
 # Images
 screenshots/
