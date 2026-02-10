@@ -2,7 +2,7 @@
 Concurrency Module
 ===================
 Threading utilities for background task execution.
-Ensures Streamlit UI remains responsive during long-running operations.
+Ensures terminal UI and CLI workflows remain responsive during long-running operations.
 """
 
 from __future__ import annotations
