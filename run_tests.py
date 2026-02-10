@@ -17,6 +17,8 @@ TEST_MODULES = [
     "tests/test_epub_parser.py", 
     "tests/test_database.py",
     "tests/test_cleaner.py",
+    "tests/test_cli.py",
+    "tests/test_events.py",
 ]
 
 def run_test(test_path: str) -> tuple[bool, float]:
