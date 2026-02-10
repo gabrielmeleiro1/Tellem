@@ -32,6 +32,13 @@ from modules.storage.models import (
 from modules.pipeline.orchestrator import ConversionPipeline, PipelineConfig
 from modules.tts.factory import TTSEngineFactory
 from modules.tts.strategies.base import TTSStrategy
+from modules.app.events import (
+    AppEvent,
+    JobState,
+    make_log_event,
+    make_progress_event,
+    make_state_event,
+)
 
 
 class JobStatus(Enum):
@@ -101,6 +108,7 @@ class ConversionCallbacks:
     on_log: Optional[Callable[[str, str], None]] = None
     on_complete: Optional[Callable[[ConversionResult], None]] = None
     on_error: Optional[Callable[[str], None]] = None
+    on_event: Optional[Callable[[AppEvent], None]] = None
 
 
 class AppController:
@@ -290,6 +298,8 @@ class AppController:
         job._thread = thread
         job.status = JobStatus.RUNNING
         thread.start()
+        if callbacks and callbacks.on_event:
+            callbacks.on_event(make_state_event(JobState.RUNNING, job.id, "conversion started"))
         
         return job
     
@@ -336,6 +346,8 @@ class AppController:
                 
                 if callbacks and callbacks.on_progress:
                     callbacks.on_progress(stage.value, progress, message or "")
+                if callbacks and callbacks.on_event:
+                    callbacks.on_event(make_progress_event(stage.value, progress, message or ""))
                 
                 if callbacks and callbacks.on_stage_change:
                     callbacks.on_stage_change(stage.value)
@@ -344,6 +356,8 @@ class AppController:
             def on_verbose(message: str, msg_type: str):
                 if callbacks and callbacks.on_log:
                     callbacks.on_log(message, msg_type)
+                if callbacks and callbacks.on_event:
+                    callbacks.on_event(make_log_event(message=message, level=msg_type))
             
             # Create and run pipeline
             pipeline = ConversionPipeline(
@@ -399,12 +413,16 @@ class AppController:
                 
                 if callbacks and callbacks.on_complete:
                     callbacks.on_complete(job.result)
+                if callbacks and callbacks.on_event:
+                    callbacks.on_event(make_state_event(JobState.COMPLETED, job.id, "conversion completed"))
             else:
                 job.status = JobStatus.FAILED
                 job.error = result.error or "Unknown error"
                 
                 if callbacks and callbacks.on_error:
                     callbacks.on_error(job.error)
+                if callbacks and callbacks.on_event:
+                    callbacks.on_event(make_state_event(JobState.FAILED, job.id, job.error))
                     
         except Exception as e:
             job.status = JobStatus.FAILED
@@ -412,6 +430,8 @@ class AppController:
             
             if callbacks and callbacks.on_error:
                 callbacks.on_error(str(e))
+            if callbacks and callbacks.on_event:
+                callbacks.on_event(make_state_event(JobState.FAILED, job.id, str(e)))
         
         finally:
             job.pipeline = None
