@@ -34,6 +34,19 @@ class CleanerConfig:
     cache_model: bool = True  # Keep model cached between chunks
 
 
+# Curated model options for text cleaning in the UI.
+# The default remains first.
+CLEANER_MODEL_CHOICES = [
+    "mlx-community/Llama-3.2-3B-Instruct-4bit",
+    "mlx-community/Llama-3.2-1B-Instruct-4bit",
+]
+
+
+def list_cleaner_models() -> list[str]:
+    """Return cleaner model identifiers offered to users."""
+    return CLEANER_MODEL_CHOICES.copy()
+
+
 # Prompt template for text normalization
 CLEANER_PROMPT_TEMPLATE = """You are a text preprocessing assistant for a text-to-speech system.
 
