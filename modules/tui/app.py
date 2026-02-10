@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from urllib.parse import unquote, urlparse
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
@@ -187,7 +188,7 @@ class NewConversionModal(ModalScreen[Optional[ConversionRequest]]):
                     id="source-input",
                     classes="field",
                 )
-                yield DirectoryTree(str(Path.cwd()), id="source-tree")
+                yield DirectoryTree(str(self._default_tree_root()), id="source-tree")
                 yield Select(
                     engine_options,
                     value=default_engine,
@@ -288,15 +289,43 @@ class NewConversionModal(ModalScreen[Optional[ConversionRequest]]):
             return None
         return speed
 
+    @staticmethod
+    def _normalize_source_input(raw: str) -> str:
+        # Accept pasted paths from shell/Finder:
+        # - quoted path
+        # - path wrapped in parentheses
+        # - file:// URI
+        # - escaped spaces from shell copy
+        value = raw.strip().rstrip(")")
+        if value.startswith("("):
+            value = value[1:]
+        value = value.strip().strip("'").strip('"')
+        value = value.replace("\\ ", " ")
+
+        if value.startswith("file://"):
+            parsed = urlparse(value)
+            value = unquote(parsed.path)
+
+        return value
+
     def _validate_source(self) -> Optional[Path]:
-        raw = self.query_one("#source-input", Input).value.strip()
+        raw = self.query_one("#source-input", Input).value
         if not raw:
             self._set_error("Please select a source file.")
             return None
 
-        source = Path(raw).expanduser().resolve()
-        if not source.exists() or not source.is_file():
-            self._set_error(f"Source file not found: {source}")
+        normalized = self._normalize_source_input(raw)
+        source = Path(normalized).expanduser().resolve()
+        if not source.exists():
+            self._set_error(f"Source path not found: {source}")
+            return None
+
+        if source.is_dir():
+            self._set_error(f"Selected path is a folder, not a file: {source}")
+            return None
+
+        if not source.is_file():
+            self._set_error(f"Selected path is not a file: {source}")
             return None
 
         if source.suffix.lower() not in SUPPORTED_SOURCE_SUFFIXES:
@@ -810,3 +839,8 @@ class AudiobookTUI(App):
 
     def on_unmount(self) -> None:
         self.controller.cleanup()
+    @staticmethod
+    def _default_tree_root() -> Path:
+        # Use the system root ("/" on Unix-like systems, drive root on Windows)
+        # rather than the current project directory.
+        return Path(Path.home().anchor)
