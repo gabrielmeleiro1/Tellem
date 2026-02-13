@@ -1,0 +1,12 @@
+"""
+Terminal UI theme tokens.
+"""
+
+BLACK = "#000000"
+DARK_GRAY = "#111318"
+CHARCOAL_GRAY = "#1A1D22"
+ORANGE = "#FF5A14"
+TEAL_GREEN = "#46C59E"
+CORAL_PINK = "#F26D6D"
+OFF_WHITE = "#F2F2F2"
+
