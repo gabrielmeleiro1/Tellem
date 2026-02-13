@@ -15,7 +15,7 @@ from textual.widgets import Static
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from modules.tui.app import LaunchOptions, NewConversionModal
+from modules.tui.screens.convert_modal import LaunchOptions, NewConversionModal
 
 
 def _make_modal() -> NewConversionModal:
@@ -45,8 +45,18 @@ def _make_modal() -> NewConversionModal:
     )
 
 
+def _make_empty_modal() -> NewConversionModal:
+    return NewConversionModal(
+        initial=LaunchOptions(),
+        tts_engines=[],
+        cleaner_models=[],
+        voices_by_engine={},
+    )
+
+
 def _test_default_tree_root() -> None:
     root = NewConversionModal._default_tree_root()
+    assert root == Path.home()
     assert root.exists()
     assert root.is_absolute()
     print("✓ modal default tree root")
@@ -59,6 +69,7 @@ def _test_normalize_source_input() -> None:
     assert normalize('"/tmp/my\\ file.pdf"') == "/tmp/my file.pdf"
     assert normalize("(/tmp/my book.epub)") == "/tmp/my book.epub"
     assert normalize("file:///tmp/My%20Book.pdf") == "/tmp/My Book.pdf"
+    assert normalize("/tmp/Book (draft).pdf") == "/tmp/Book (draft).pdf"
     print("✓ source path normalization")
 
 
@@ -106,6 +117,24 @@ def _test_modal_mount_no_crash() -> None:
     print("✓ modal mounts and composes")
 
 
+async def _test_modal_mount_with_empty_options_async() -> None:
+    class Harness(App[None]):
+        def compose(self) -> ComposeResult:
+            yield Static("harness")
+
+        def on_mount(self) -> None:
+            self.push_screen(_make_empty_modal())
+
+    app = Harness()
+    async with app.run_test() as pilot:
+        await pilot.pause()
+
+
+def _test_modal_mount_with_empty_options() -> None:
+    asyncio.run(_test_modal_mount_with_empty_options_async())
+    print("✓ modal mounts with empty options")
+
+
 def test_tui_modal() -> bool:
     print("\n" + "=" * 50)
     print("TUI MODAL TEST SUITE")
@@ -115,6 +144,7 @@ def test_tui_modal() -> bool:
     _test_normalize_source_input()
     _test_bindings_and_actions()
     _test_modal_mount_no_crash()
+    _test_modal_mount_with_empty_options()
 
     print("\n" + "=" * 50)
     print("ALL TUI MODAL TESTS PASSED ✓")
