@@ -9,470 +9,40 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-from urllib.parse import unquote, urlparse
 from collections import deque
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
 from textual.app import App, ComposeResult
-from textual.containers import Container, Horizontal, Vertical, VerticalScroll
 from textual.reactive import reactive
-from textual.screen import ModalScreen
 from textual.widgets import (
     Button,
-    DirectoryTree,
     Footer,
     Header,
-    Input,
     OptionList,
     ProgressBar,
     RichLog,
-    Select,
     Static,
 )
 
 from modules.app import AppController, ConversionCallbacks
 from modules.app.events import AppEvent, EventType
-
-SUPPORTED_SOURCE_SUFFIXES = {".pdf", ".epub"}
-TTS_QUANTIZATION_CHOICES = ["bf16", "8bit", "6bit", "4bit"]
-
-
-@dataclass
-class LaunchOptions:
-    source: Optional[Path] = None
-    voice: str = "am_adam"
-    speed: float = 1.0
-    title: Optional[str] = None
-    author: Optional[str] = None
-    tts_engine: str = "kokoro"
-    tts_quantization: str = "bf16"
-    cleaner_model: str = "mlx-community/Llama-3.2-3B-Instruct-4bit"
-
-
-@dataclass
-class ConversionRequest:
-    source: Path
-    voice: str
-    speed: float
-    title: Optional[str]
-    author: Optional[str]
-    tts_engine: str
-    tts_quantization: str
-    cleaner_model: str
-
-
-class NewConversionModal(ModalScreen[Optional[ConversionRequest]]):
-    """Modal to select source file and model options before starting conversion."""
-
-    BINDINGS = [
-        ("enter", "submit", "Start"),
-        ("escape", "cancel_modal", "Cancel"),
-    ]
-
-    CSS = """
-    NewConversionModal {
-        align: center middle;
-    }
-    #modal-root {
-        width: 96;
-        height: 95%;
-        border: solid #e9d7b8;
-        background: #171717;
-        padding: 1 2;
-        layout: vertical;
-    }
-    #modal-content {
-        height: 1fr;
-        overflow-y: auto;
-    }
-    #modal-title {
-        color: #f7b267;
-        text-style: bold;
-        margin-bottom: 1;
-    }
-    #modal-help {
-        color: #d8d2c7;
-        margin-bottom: 1;
-    }
-    #source-tree {
-        height: 14;
-        border: round #e9d7b8;
-        margin-bottom: 1;
-    }
-    .field {
-        margin-bottom: 1;
-    }
-    #modal-error {
-        color: #ff8a80;
-        margin-top: 1;
-        height: 2;
-    }
-    #modal-actions {
-        dock: bottom;
-        margin-top: 1;
-        height: auto;
-    }
-    Button {
-        margin-right: 1;
-    }
-    """
-
-    def __init__(
-        self,
-        *,
-        initial: LaunchOptions,
-        tts_engines: list[dict],
-        cleaner_models: list[str],
-        voices_by_engine: dict[str, list[dict]],
-    ) -> None:
-        super().__init__()
-        self.initial = initial
-        self.tts_engines = tts_engines
-        self.cleaner_models = cleaner_models
-        self.voices_by_engine = voices_by_engine
-        self.conversion_supported_engines = {
-            engine["id"]
-            for engine in tts_engines
-            if engine.get("available_for_conversion", False)
-        }
-
-    def _engine_options(self) -> list[tuple[str, str]]:
-        options: list[tuple[str, str]] = []
-        for engine in self.tts_engines:
-            suffix = "" if engine.get("available_for_conversion") else " (coming soon)"
-            options.append((f"{engine['display_name']} [{engine['id']}]" + suffix, engine["id"]))
-        return options
-
-    def _voice_options(self, engine_name: str) -> list[tuple[str, str]]:
-        voices = self.voices_by_engine.get(engine_name, [])
-        options = []
-        for voice in voices:
-            label = f"{voice['id']} - {voice['name']} ({voice['language']})"
-            options.append((label, voice["id"]))
-        return options
-
-    def compose(self) -> ComposeResult:
-        engine_options = self._engine_options()
-        default_engine = self.initial.tts_engine
-        if not any(value == default_engine for _, value in engine_options):
-            default_engine = engine_options[0][1] if engine_options else "kokoro"
-
-        voice_options = self._voice_options(default_engine)
-        default_voice = self.initial.voice
-        if not any(value == default_voice for _, value in voice_options):
-            default_voice = voice_options[0][1] if voice_options else "am_adam"
-
-        cleaner_options = [(model, model) for model in self.cleaner_models]
-        quantization_options = [(value, value) for value in TTS_QUANTIZATION_CHOICES]
-
-        default_cleaner = self.initial.cleaner_model
-        if not any(value == default_cleaner for _, value in cleaner_options):
-            default_cleaner = cleaner_options[0][1]
-
-        default_quantization = self.initial.tts_quantization
-        if not any(value == default_quantization for _, value in quantization_options):
-            default_quantization = quantization_options[0][1]
-
-        with Container(id="modal-root"):
-            with VerticalScroll(id="modal-content"):
-                yield Static("Create New Audiobook", id="modal-title")
-                yield Static(
-                    "Select a source file and conversion settings. Choose a file from the tree or paste a path.",
-                    id="modal-help",
-                )
-                yield Input(
-                    value=str(self.initial.source) if self.initial.source else "",
-                    placeholder="/path/to/book.pdf or /path/to/book.epub",
-                    id="source-input",
-                    classes="field",
-                )
-                yield DirectoryTree(str(self._default_tree_root()), id="source-tree")
-                yield Select(
-                    engine_options,
-                    value=default_engine,
-                    allow_blank=False,
-                    prompt="TTS Engine",
-                    id="tts-engine-select",
-                    classes="field",
-                )
-                yield Select(
-                    voice_options,
-                    value=default_voice,
-                    allow_blank=False,
-                    prompt="Voice",
-                    id="voice-select",
-                    classes="field",
-                )
-                yield Select(
-                    cleaner_options,
-                    value=default_cleaner,
-                    allow_blank=False,
-                    prompt="Text Cleaner Model",
-                    id="cleaner-model-select",
-                    classes="field",
-                )
-                yield Select(
-                    quantization_options,
-                    value=default_quantization,
-                    allow_blank=False,
-                    prompt="TTS Quantization",
-                    id="tts-quantization-select",
-                    classes="field",
-                )
-                yield Input(
-                    value=f"{self.initial.speed:.2f}",
-                    placeholder="Speech speed (0.5 - 2.0)",
-                    type="number",
-                    id="speed-input",
-                    classes="field",
-                )
-                yield Input(
-                    value=self.initial.title or "",
-                    placeholder="Optional title override",
-                    id="title-input",
-                    classes="field",
-                )
-                yield Input(
-                    value=self.initial.author or "",
-                    placeholder="Optional author override",
-                    id="author-input",
-                    classes="field",
-                )
-                yield Static("Enter=start, Esc=cancel", classes="field")
-                yield Static("", id="modal-error")
-            with Horizontal(id="modal-actions"):
-                yield Button("Start Conversion", id="confirm", classes="-primary")
-                yield Button("Cancel", id="cancel")
-
-    def on_mount(self) -> None:
-        engine_select = self.query_one("#tts-engine-select", Select)
-        self._sync_voice_options(str(engine_select.value), preferred_voice=self.initial.voice)
-        self._update_engine_help(str(engine_select.value))
-
-    def _sync_voice_options(self, engine_name: str, preferred_voice: Optional[str] = None) -> None:
-        voice_select = self.query_one("#voice-select", Select)
-        options = self._voice_options(engine_name)
-        if not options:
-            options = [("No voices available", "")]
-        voice_select.set_options(options)
-
-        option_values = {value for _, value in options}
-        selected_voice = preferred_voice if preferred_voice in option_values else options[0][1]
-        voice_select.value = selected_voice
-
-    def _update_engine_help(self, engine_name: str) -> None:
-        help_widget = self.query_one("#modal-help", Static)
-        if engine_name in self.conversion_supported_engines:
-            help_widget.update(
-                "Select a source file and conversion settings. Choose a file from the tree or paste a path."
-            )
-            return
-        help_widget.update(
-            "Selected TTS engine is not conversion-ready yet. Switch to a supported engine (currently kokoro)."
-        )
-
-    def _set_error(self, message: str) -> None:
-        self.query_one("#modal-error", Static).update(message)
-
-    def _parse_speed(self) -> Optional[float]:
-        raw = self.query_one("#speed-input", Input).value.strip()
-        try:
-            speed = float(raw)
-        except ValueError:
-            self._set_error("Speed must be a number between 0.5 and 2.0.")
-            return None
-
-        if speed < 0.5 or speed > 2.0:
-            self._set_error("Speed must be between 0.5 and 2.0.")
-            return None
-        return speed
-
-    @staticmethod
-    def _normalize_source_input(raw: str) -> str:
-        # Accept pasted paths from shell/Finder:
-        # - quoted path
-        # - path wrapped in parentheses
-        # - file:// URI
-        # - escaped spaces from shell copy
-        value = raw.strip().rstrip(")")
-        if value.startswith("("):
-            value = value[1:]
-        value = value.strip().strip("'").strip('"')
-        value = value.replace("\\ ", " ")
-
-        if value.startswith("file://"):
-            parsed = urlparse(value)
-            value = unquote(parsed.path)
-
-        return value
-
-    @staticmethod
-    def _default_tree_root() -> Path:
-        # Use the system root ("/" on Unix-like systems, drive root on Windows)
-        # rather than the current project directory.
-        return Path(Path.home().anchor)
-
-    def _validate_source(self) -> Optional[Path]:
-        raw = self.query_one("#source-input", Input).value
-        if not raw:
-            self._set_error("Please select a source file.")
-            return None
-
-        normalized = self._normalize_source_input(raw)
-        source = Path(normalized).expanduser().resolve()
-        if not source.exists():
-            self._set_error(f"Source path not found: {source}")
-            return None
-
-        if source.is_dir():
-            self._set_error(f"Selected path is a folder, not a file: {source}")
-            return None
-
-        if not source.is_file():
-            self._set_error(f"Selected path is not a file: {source}")
-            return None
-
-        if source.suffix.lower() not in SUPPORTED_SOURCE_SUFFIXES:
-            suffixes = ", ".join(sorted(SUPPORTED_SOURCE_SUFFIXES))
-            self._set_error(f"Unsupported source type: {source.suffix}. Use one of: {suffixes}")
-            return None
-
-        return source
-
-    def on_directory_tree_file_selected(self, event: DirectoryTree.FileSelected) -> None:
-        source = event.path
-        if source.suffix.lower() not in SUPPORTED_SOURCE_SUFFIXES:
-            self._set_error("Select a PDF or EPUB source file.")
-            return
-
-        self.query_one("#source-input", Input).value = str(source)
-        self._set_error("")
-
-    def on_select_changed(self, event: Select.Changed) -> None:
-        if event.select.id == "tts-engine-select":
-            engine_name = str(event.value)
-            self._sync_voice_options(engine_name, preferred_voice=self.initial.voice)
-            self._update_engine_help(engine_name)
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "cancel":
-            self.dismiss(None)
-            return
-
-        if event.button.id != "confirm":
-            return
-
-        self._submit_form()
-
-    def _submit_form(self) -> None:
-        source = self._validate_source()
-        if source is None:
-            return
-
-        speed = self._parse_speed()
-        if speed is None:
-            return
-
-        tts_engine = str(self.query_one("#tts-engine-select", Select).value)
-        if tts_engine not in self.conversion_supported_engines:
-            self._set_error(
-                f"TTS engine '{tts_engine}' is not available for conversion yet. Use kokoro."
-            )
-            return
-
-        voice = str(self.query_one("#voice-select", Select).value)
-        cleaner_model = str(self.query_one("#cleaner-model-select", Select).value)
-        tts_quantization = str(self.query_one("#tts-quantization-select", Select).value)
-        title = self.query_one("#title-input", Input).value.strip() or None
-        author = self.query_one("#author-input", Input).value.strip() or None
-
-        self.dismiss(
-            ConversionRequest(
-                source=source,
-                voice=voice,
-                speed=speed,
-                title=title,
-                author=author,
-                tts_engine=tts_engine,
-                tts_quantization=tts_quantization,
-                cleaner_model=cleaner_model,
-            )
-        )
-
-    def action_submit(self) -> None:
-        self._submit_form()
-
-    def action_cancel_modal(self) -> None:
-        self.dismiss(None)
+from modules.tui.screens.convert_modal import (
+    ConversionRequest,
+    LaunchOptions,
+    NewConversionModal,
+    SUPPORTED_SOURCE_SUFFIXES,
+    TTS_QUANTIZATION_CHOICES,
+)
+from modules.tui.screens.dashboard import DashboardShell
+from modules.tui.screens.home import HomeScreen
+from modules.tui.styles import APP_CSS
 
 
 class AudiobookTUI(App):
     """Brutalist terminal dashboard for guided audiobook conversion."""
 
-    CSS = """
-    Screen {
-        background: #131313;
-        color: #f5f1e8;
-    }
-    #root {
-        height: 1fr;
-        layout: vertical;
-    }
-    #actions {
-        height: auto;
-        border: solid #e9d7b8;
-        margin: 1 1 0 1;
-        padding: 1;
-        background: #1d1d1d;
-    }
-    #panes {
-        height: 1fr;
-        margin: 0 1 1 1;
-    }
-    #status-pane, #progress-pane, #library-pane, #log-pane {
-        border: solid #e9d7b8;
-        background: #1d1d1d;
-        padding: 1;
-        margin-right: 1;
-    }
-    #status-pane {
-        width: 28;
-    }
-    #progress-pane {
-        width: 24;
-    }
-    #library-pane {
-        width: 42;
-    }
-    #log-pane {
-        margin-right: 0;
-        width: 1fr;
-    }
-    #library-list {
-        height: 1fr;
-        margin-top: 1;
-    }
-    #library-detail {
-        margin-top: 1;
-        color: #d8d2c7;
-        height: 8;
-    }
-    .label {
-        color: #f7b267;
-        text-style: bold;
-    }
-    Button {
-        background: #2b2b2b;
-        color: #f5f1e8;
-        border: solid #e9d7b8;
-        margin-right: 1;
-    }
-    Button.-primary {
-        background: #7f2a1d;
-    }
-    """
+    CSS = APP_CSS
 
     BINDINGS = [
         ("q", "quit", "Quit"),
@@ -514,52 +84,31 @@ class AudiobookTUI(App):
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        with Container(id="root"):
-            with Horizontal(id="actions"):
-                yield Button("New (n)", id="new", classes="-primary")
-                yield Button("Library (l)", id="library")
-                yield Button("Start (s)", id="start")
-                yield Button("Cancel (c)", id="cancel")
-                yield Button("Refresh (r)", id="refresh")
-                yield Button("Open Output (o)", id="open-output")
-                yield Static("Guided conversion mode", classes="label")
-            with Horizontal(id="panes"):
-                with Vertical(id="status-pane"):
-                    yield Static("Selection", classes="label")
-                    yield Static("source: none", id="source-text")
-                    yield Static("tts engine: kokoro", id="tts-engine-text")
-                    yield Static("voice: am_adam", id="voice-text")
-                    yield Static("cleaner: default", id="cleaner-text")
-                    yield Static("quantization: bf16", id="quantization-text")
-                    yield Static("speed: 1.0", id="speed-text")
-                    yield Static("status", classes="label")
-                    yield Static("job: none", id="job-text")
-                    yield Static("state: idle", id="state-text")
-                    yield Static("stage: idle", id="stage-text")
-                with Vertical(id="progress-pane"):
-                    yield Static("Progress", classes="label")
-                    yield ProgressBar(total=100, id="progress-bar")
-                    yield Static("0%", id="progress-text")
-                with Vertical(id="library-pane"):
-                    yield Static("Library", classes="label")
-                    yield OptionList(id="library-list")
-                    yield Static("No converted books yet.", id="library-detail")
-                with Vertical(id="log-pane"):
-                    yield Static("Logs", classes="label")
-                    yield RichLog(id="log-view", wrap=True, highlight=True)
+        yield DashboardShell(id="root")
         yield Footer()
 
     def on_mount(self) -> None:
         self._load_model_options()
         self._refresh_selection_panel()
-        self.action_open_library()
         self._log("ready")
 
         if self._source:
+            self.action_open_library()
             self._log(f"auto-starting source from launch option: {self._source}")
             self.action_start_conversion()
-        else:
-            self._log("choose 'New' to start conversion or browse existing library output")
+            return
+
+        self.push_screen(HomeScreen(), self._on_home_choice)
+
+    def _on_home_choice(self, choice: Optional[str]) -> None:
+        selected = choice or "library"
+        if selected == "convert":
+            self._log("home: convert new book")
+            self.action_new_conversion()
+            return
+
+        self._log("home: browse library")
+        self.action_open_library()
 
     def _load_model_options(self) -> None:
         tts_engines = self.controller.get_available_tts_engines()
